@@ -1,6 +1,6 @@
 # wp-control
 
-Now days, there are many ways to run your **Wordpress** site, without any technical ability required. There are wonderful sites like **[wordpress.com](https://wordpress.com/)** where you can start your site, and run it, without needing any underlying infrastructure. For some of us, we still want to or need to manage our own Wordpress site, on our own servers, or our local development environment; and it's those people who wp-control was created for.
+Now days, there are many ways to run your **WordPress** site, without any technical ability required. There are wonderful sites like **[wordpress.com](https://wordpress.com/)** where you can start your site, and run it, without needing any underlying infrastructure. For some of us, we still want to or need to manage our own Wordpress site, on our own servers, or our local development environment; and it's those people who wp-control was created for.
 
 ## A Little history
 My name is Jesse Greathouse. Over the years I have done countless projects for people and businesses where WordPress was an integral part of their marketing strategy. After doing so many WordPress projects, consulting for so many people, I slowly formed a series of scripts and configurations to streamline the setup and deployment of these Wordpress sites. 
