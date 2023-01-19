@@ -1,7 +1,7 @@
 #   +---------------------------------------------------------------------------------+
 #   | This file is part of wp-control                                       |
 #   +---------------------------------------------------------------------------------+
-#   | Copyright (c) 2017 Greathouse Technology LLC (http://www.greathouse.technology) |
+#   | Copyright (c) 2023 Greathouse Technology LLC (http://www.greathouse.technology) |
 #   +---------------------------------------------------------------------------------+
 #   | wp-control is free software: you can redistribute it and/or modify    |
 #   | it under the terms of the GNU General Public License as published by            |
