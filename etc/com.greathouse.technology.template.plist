@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+        <key>KeepAlive</key>
+        <dict>
+                <key>SuccessfulExit</key>
+                <false/>
+        </dict>
+        <key>UserName</key>
+        <string>__USER__</string>
+        <key>Label</key>
+        <string>__LABEL__</string>
+        <key>Program</key>
+        <string>__RUN_SCRIPT__</string>
+        <key>RunAtLoad</key>
+        <true/>
+        <key>StandardErrorPath</key>
+        <string>__ERROR_PATH__</string>
+        <key>StandardOutPath</key>
+        <string>__STANDARD_OUT_PATH__</string>
+        <key>WorkingDirectory</key>
+        <string>__WORKING_DIRECTORY__</string>
+</dict>
+</plist>
