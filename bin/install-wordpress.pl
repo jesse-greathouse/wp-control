@@ -144,10 +144,10 @@ sub link_package {
     # unlink existing symlinks
     if ( -l "$webDir/$file" ) {
       unlink "$webDir/$file"
-          or die "Failed to remove symlink $webDir/$file: $!\n";
+          or warn "Failed to remove symlink $webDir/$file: $!\n";
     }
 
-    symlink("$wordpressDir/$file", "$webDir/$file") or die "Failed to create symlink $webDir/$file: $!\n";
+    symlink("$wordpressDir/$file", "$webDir/$file") or warn "Failed to create symlink $webDir/$file: $!\n";
   }
 
 }

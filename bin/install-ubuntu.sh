@@ -139,6 +139,9 @@ cd ${BIN}
 # Download and Install Wordpress
 OPT=${OPT} WEB=${WEB} ${BIN}/install-wordpress.pl
 
+# Install the Wordpress Skeleton
+DIR=${DIR} ${BIN}/install-wordpress.pl
+
 cd ${DIR}
 
 # Download Wordpress CLI
