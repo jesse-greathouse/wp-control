@@ -1,12 +1,12 @@
 #!/usr/bin/perl
 
 use strict;
+use Getopt::Long;
 use JSON;
 use File::Path;
 use Cwd qw(getcwd);
 use LWP::UserAgent ();
 use LWP::Simple;
-use Data::Dumper;
 use Term::Menus;
 use Archive::Zip qw( :ERROR_CODES :CONSTANTS );
 
@@ -22,12 +22,7 @@ my $requestedVersion = undef;
 my $versionCheckUri = "https://api.wordpress.org/core/version-check/1.7/";
 my %versionDownloadTable;
 
-# Sort out the command line args.
-foreach $argnum (0 .. $#ARGV) {
-    if ($ARGV[$argnum] eq "--version") {
-      $requestedVersion = trim($ARGV[$argnum + 1]);
-    };
-}
+GetOptions("version=s" => \$requestedVersion) or die("Error in command line arguments\n");
 
 # Call API for version data.
 @versionData = get_version_data();

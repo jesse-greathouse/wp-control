@@ -160,3 +160,5 @@ web/wp-trackback.php
 web/xmlrpc.php
 
 # misc
+.wpc/
+.wp-control-cfg.yml

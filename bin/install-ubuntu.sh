@@ -45,7 +45,7 @@ WEB="$( cd -P "$DIR/web" && pwd )"
 
 #install dependencies
 sudo apt-get update && sudo apt-get install -y \
-  supervisor authbind openssl build-essential intltool autoconf automake gcc perl curl pkg-config expect \
+  supervisor authbind openssl build-essential intltool autoconf automake gcc perl curl pkg-config expect cpanminus \
   mysql-client imagemagick libpcre++-dev libcurl4 libcurl4-openssl-dev libmagickwand-dev libssl-dev libxslt1-dev \
   libmysqlclient-dev libpcre2-dev libxml2 libxml2-dev libicu-dev libmagick++-dev libzip-dev libonig-dev libsodium-dev libglib2.0-dev
 
@@ -107,10 +107,14 @@ make install
 
 # Install perl modules
 sudo cpanm JSON
+sudo cpanm YAML::XS
 sudo cpanm LWP::UserAgent
 sudo cpanm LWP::Protocol::https
 sudo cpanm Term::Menus
 sudo cpanm Archive::Zip
+sudo cpanm File::Slurper;
+sudo cpanm File::HomeDir;
+sudo cpanm File::Find::Rule;
 
 # Install Pear and ImageMagick extension
 # If php.ini exists, hide it before pear installs
