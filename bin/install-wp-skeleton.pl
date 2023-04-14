@@ -15,6 +15,7 @@ use lib(dirname(abs_path(__FILE__))  . "/modules");
 use WPControl::Config qw(get_configuration save_configuration);
 
 my $applicationRoot = $ENV{'DIR'};
+my $webRoot = $applicationRoot . '/web';
 my $applicatioHiddenFolder = $applicationRoot . '/.wpc';
 my $argnum;
 my $skeletonRemote = undef;
@@ -73,6 +74,9 @@ if (-d $cfg{'skeleton'}{'path'} ) {
   print "downloading $cfg{'skeleton'}{'remote'} from remote\n";
   clone_skeleton_repository($cfg{'skeleton'}{'remote'}, $cfg{'skeleton'}{'path'});
 }
+
+unlink_project($webRoot);
+link_project($webRoot, $cfg{'skeleton'}{'path'});
 
 # ====================================
 #    Subroutines below this point
@@ -152,4 +156,52 @@ sub get_repo_name {
   my @spltoo = split('.git', $name);
   $name = @spltoo[0];
   return $name;
+}
+
+sub unlink_project {
+  my ($webDir) = @_;
+  my @folders  = ('languages','images','custom-config','client-mu-plugins');
+  # unlink existing symlinks
+  foreach my $folder (@folders) {
+    if ( -l "$webDir/$folder" ) {
+      unlink "$webDir/$folder"
+          or warn "Failed to remove symlink $webDir/$folder: $!\n";
+    }
+  }
+
+  # unlink themes
+  if ( -l "$webDir/wp-content/themes" ) {
+    unlink "$webDir/wp-content/themes"
+        or warn "Failed to remove symlink $webDir/wp-content/themes: $!\n";
+  }
+
+  # unlink plugins
+  if ( -l "$webDir/wp-content/plugins" ) {
+    unlink "$webDir/wp-content/plugins"
+        or warn "Failed to remove symlink $webDir/wp-content/plugins: $!\n";
+  }
+
+  # unlink uploads
+  if ( -l "$webDir/wp-content/uploads" ) {
+    unlink "$webDir/wp-content/uploads"
+        or warn "Failed to remove symlink $webDir/wp-content/uploads: $!\n";
+  }
+}
+
+sub link_project {
+  my ($webDir, $source) = @_;
+  my @folders  = ('languages','images','custom-config','client-mu-plugins');
+
+  # link projects together by folders
+  foreach my $folder (@folders) {
+    symlink("$source/$folder", "$webDir/$folder") or warn "Failed to create symlink $webDir/$folder: $!\n";
+  }
+
+  # link themes
+  symlink("$source/themes", "$webDir/wp-content/themes") or warn "Failed to create symlink $webDir/wp-content/themes: $!\n";
+  # link plugins
+  symlink("$source/plugins", "$webDir/wp-content/plugins") or warn "Failed to create symlink $webDir/wp-content/plugins: $!\n";
+  # link uploads
+  symlink("$source/uploads", "$webDir/wp-content/uploads") or warn "Failed to create symlink $webDir/wp-content/uploads: $!\n";
+
 }
