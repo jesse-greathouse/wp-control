@@ -119,6 +119,9 @@ sub extract_package {
 
   $zip->extractTree('wordpress');
 
+  # Remove wp-content folder.
+  rmtree("$wordpressDir/wp-content") or die "Couldn't remove $wordpressDir/wp-content directory, $!";
+
   chdir($cwd) or die "Couldn't go inside $cwd directory, $!";
 }
 
@@ -140,6 +143,7 @@ sub link_package {
     next if($file eq 'readme.html');
     next if($file eq 'wp-config-sample.php');
     next if($file eq 'license.txt');
+    next if($file eq 'index.php');
 
     # unlink existing symlinks
     if ( -l "$webDir/$file" ) {
@@ -149,6 +153,10 @@ sub link_package {
 
     symlink("$wordpressDir/$file", "$webDir/$file") or warn "Failed to create symlink $webDir/$file: $!\n";
   }
+
+  # Symbolic link wp-content into opt/wordpress/wp-content
+  # Workaround for WordPress-land code paths relative to opt/wordpress/wp-content
+  symlink("$webDir/wp-content", "$wordpressDir/wp-content") or warn "Failed to create symlink $webDir/wp-content: $!\n";
 
 }
 

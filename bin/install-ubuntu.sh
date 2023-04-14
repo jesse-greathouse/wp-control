@@ -140,7 +140,7 @@ cd ${BIN}
 OPT=${OPT} WEB=${WEB} ${BIN}/install-wordpress.pl
 
 # Install the Wordpress Skeleton
-DIR=${DIR} ${BIN}/install-wordpress.pl
+DIR=${DIR} ${BIN}/install-wp-skeleton.pl
 
 cd ${DIR}
 

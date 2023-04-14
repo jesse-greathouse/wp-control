@@ -18,13 +18,6 @@
  * @package WordPress
  */
 
- /** Absolute path to the WordPress directory. */
-if ( ! defined( 'ABSPATH' ) ) {
-	define( 'ABSPATH', __DIR__ . '/' );
-}
-
-require_once ABSPATH . 'env.php';
-
 /** Database Charset to use in creating database tables. */
 define( 'DB_CHARSET', 'utf8' );
 

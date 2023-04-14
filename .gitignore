@@ -86,6 +86,7 @@ etc/ssl/CA/*
 
 # opt
 opt/wordpress*/*
+opt/wordpress-*.zip
 opt/php*/*
 opt/openresty*/*
 opt/MacOSX*/*
@@ -135,11 +136,14 @@ supervisord.docker.log
 supervisord.pid
 
 # web
+web/client-mu-plugins/
+web/custom-config/
+web/images/
+web/languages/
+web/
 web/wp-admin/
 web/wp-includes/
-web/wp-content/uploads/
-!web/wp-content/uploads/.gitkeep
-web/wp-content/plugins/backend-code-test-jesse-greathouse
+web/wp-content/
 web/index.php
 web/license.txt
 web/readme.html
