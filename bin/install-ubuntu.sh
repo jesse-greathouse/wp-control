@@ -153,8 +153,7 @@ chmod +x ${BIN}/wp-cli.phar
 
 # Cleanup
 rm -rf ${OPT}/php-*/
-rm ${OPT}/wordpress.tar.gz
-rm -rf ${OPT}/wordpress
+rm ${OPT}/wordpress-*.zip
 rm -rf ${OPT}/openresty-*/
 
 # Run the configuration
