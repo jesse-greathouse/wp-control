@@ -143,7 +143,6 @@ sub link_package {
     next if($file eq 'readme.html');
     next if($file eq 'wp-config-sample.php');
     next if($file eq 'license.txt');
-    next if($file eq 'index.php');
 
     # unlink existing symlinks
     if ( -l "$webDir/$file" ) {

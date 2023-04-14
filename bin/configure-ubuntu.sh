@@ -243,7 +243,6 @@ if  [ "${CORRECT}" == "y" ]; then
     ## Install Wordpress Config
     ##============================
     cp ${ETC}/wordpress/wp-config.php ${OPT}/wordpress/wp-config.php
-    cp ${ETC}/wordpress/index.php ${OPT}/wordpress/index.php
     cp ${ETC}/wordpress/env.php ${OPT}/wordpress/env.php
 
     ##============================
