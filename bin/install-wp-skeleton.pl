@@ -35,7 +35,7 @@ save_configuration(%cfg);
 # Uses user home directory by default.
 if (undef eq length $cfg{'skeleton'}{'path'}) {
   my $default_dir = get_default_directory();
-  print "Use default path or change path: '(" . $default_dir . ")'\n? > ";
+  print "Project Skeleton path: '(" . $default_dir . ")'\n? > ";
   chomp(my $changePathPrompt = <STDIN>);
   if ($changePathPrompt =~ /^[Y]?$/i) {   # Match Yy or blank
       $cfg{'skeleton'}{'path'} = $default_dir;
@@ -197,11 +197,14 @@ sub link_project {
     symlink("$source/$folder", "$webDir/$folder") or warn "Failed to create symlink $webDir/$folder: $!\n";
   }
 
+  if (! -d "$webDir/wp-content") {
+    mkdir("$webDir/wp-content") or die "Couldn't create $webDir/wp-content directory, $!";
+  }
+
   # link themes
   symlink("$source/themes", "$webDir/wp-content/themes") or warn "Failed to create symlink $webDir/wp-content/themes: $!\n";
   # link plugins
   symlink("$source/plugins", "$webDir/wp-content/plugins") or warn "Failed to create symlink $webDir/wp-content/plugins: $!\n";
   # link uploads
   symlink("$source/uploads", "$webDir/wp-content/uploads") or warn "Failed to create symlink $webDir/wp-content/uploads: $!\n";
-
 }
