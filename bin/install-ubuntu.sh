@@ -132,7 +132,7 @@ fi
 
 # Build imagick extension with pecl
 export PATH="${OPT}/php/bin:${PATH}"
-${OPT}/pear/bin/pecl install imagick --D PREFIX=""
+yes n | ${OPT}/pear/bin/pecl install imagick --D PREFIX=""
 
 cd ${BIN}
 
