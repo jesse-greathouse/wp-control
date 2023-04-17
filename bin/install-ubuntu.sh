@@ -112,9 +112,9 @@ sudo cpanm LWP::UserAgent
 sudo cpanm LWP::Protocol::https
 sudo cpanm Term::Menus
 sudo cpanm Archive::Zip
-sudo cpanm File::Slurper;
-sudo cpanm File::HomeDir;
-sudo cpanm File::Find::Rule;
+sudo cpanm File::Slurper
+sudo cpanm File::HomeDir
+sudo cpanm File::Find::Rule
 
 # Install Pear and ImageMagick extension
 # If php.ini exists, hide it before pear installs
