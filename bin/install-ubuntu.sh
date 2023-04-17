@@ -123,7 +123,9 @@ if [ -f "${ETC}/php/php.ini" ]; then
 fi
 
 # Use expect to install Pear non-interactively
-${BIN}/install-pear.sh ${OPT}
+yes n | ${BIN}/install-pear.sh ${OPT}
+
+exit 0;
 
 #replace the php.ini file
 if [ -f "${ETC}/hidden.ini" ]; then
