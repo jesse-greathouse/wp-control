@@ -18,7 +18,7 @@
  * @package WordPress
  */
 
- require_once __DIR__ . '/env.php'
+require_once __DIR__ . '/env.php';
 
 /** Database Charset to use in creating database tables. */
 define( 'DB_CHARSET', 'utf8' );

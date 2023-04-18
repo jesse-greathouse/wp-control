@@ -156,6 +156,8 @@ sub link_package {
   # Symbolic link wp-content into opt/wordpress/wp-content
   # Workaround for WordPress-land code paths relative to opt/wordpress/wp-content
   symlink("$webDir/wp-content", "$wordpressDir/wp-content") or warn "Failed to create symlink $webDir/wp-content: $!\n";
+  symlink("$webDir/wp-config.php", "$wordpressDir/wp-config.php") or warn "Failed to create symlink $webDir/wp-config.php: $!\n";
+  symlink("$webDir/env.php", "$wordpressDir/env.php") or warn "Failed to create symlink $webDir/env.php: $!\n";
 
 }
 
