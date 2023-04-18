@@ -94,12 +94,37 @@ printf "=================================================================\n"
 printf "Hello, "${USER}".  This will create your site's run script\n"
 printf "=================================================================\n"
 printf "\n"
-printf "\nEnter your name of your site [wp-control]: "
+printf "\nEnter the name of your site: "
 read SITE_NAME
 if  [ "${SITE_NAME}" == "" ]; then
-    SITE_NAME="wp-control"
+    printf "Invalid Site Name, please run this script again to configure your site.\n"
+    exit 0;
 fi
-printf "Enter the domains of your site [127.0.0.1 localhost]: "
+printf "Enter the Admin email address of your site: "
+read ADMIN_EMAIL
+if  [ "${ADMIN_EMAIL}" == "" ]; then
+    printf "Invalid Admin email, please run this script again to configure your site.\n"
+    exit 0;
+fi
+printf "Enter the Admin password of your site: "
+read ADMIN_PASSWORD
+if  [ "${ADMIN_PASSWORD}" == "" ]; then
+    printf "Invalid Admin password, please run this script again to configure your site.\n"
+    exit 0;
+fi
+printf "Enter the WordPress Title of your site: "
+read SITE_TITLE
+if  [ "${SITE_TITLE}" == "" ]; then
+    printf "Invalid Site Title, please run this script again to configure your site.\n"
+    exit 0;
+fi
+printf "Enter the main domain of your site: "
+read MAIN_DOMAIN
+if  [ "${MAIN_DOMAIN}" == "" ]; then
+    printf "Invalid Main Domain, please run this script again to configure your site.\n"
+    exit 0;
+fi
+printf "Enter any additional domains of your site [127.0.0.1 localhost]: "
 read SITE_DOMAINS
 if  [ "${SITE_DOMAINS}" == "" ]; then
     SITE_DOMAINS="127.0.0.1 localhost"
@@ -207,7 +232,11 @@ printf "\n"
 printf "You have entered the following configuration: \n"
 printf "\n"
 printf "Site Name: ${SITE_NAME} \n"
-printf "Site Domains: ${SITE_DOMAINS} \n"
+printf "Admin Email: ${ADMIN_EMAIL} \n"
+printf "Admin Password: ${ADMIN_PASSWORD} \n"
+printf "Site Title: ${SITE_TITLE} \n"
+printf "Main Domain: ${MAIN_DOMAIN} \n"
+printf "Additional Domains: ${SITE_DOMAINS} \n"
 printf "Web Port: ${PORT} \n"
 printf "Database Host: ${DB_HOST} \n"
 printf "Database Name: ${DB_NAME} \n"
@@ -371,7 +400,7 @@ if  [ "${CORRECT}" == "y" ]; then
     sed -i -e "s __LOG__ $LOG g" ${NGINX_CONF}
     sed -i -e "s __WEB__ $WEB g" ${NGINX_CONF}
     sed -i -e "s __VAR__ $VAR g" ${NGINX_CONF}
-    sed -i -e s/__SITE_DOMAINS__/"${SITE_DOMAINS}"/g ${NGINX_CONF}
+    sed -i -e s/__SITE_DOMAINS__/"${SITE_DOMAINS} ${MAIN_DOMAIN}"/g ${NGINX_CONF}
     sed -i -e s/__PORT__/"${PORT}"/g ${NGINX_CONF}
     sed -i -e s/__SESSION_SECRET__/"${SESSION_SECRET}"/g ${NGINX_CONF}
 
@@ -464,6 +493,9 @@ if  [ "${CORRECT}" == "y" ]; then
         sudo chown ${USER} /etc/authbind/byport/${PORT}
         sudo chmod 500 /etc/authbind/byport/${PORT}
     fi
+
+    # Install WordPress
+    ${BIN}/wp core install --url=${MAIN_DOMAIN} --title="${SITE_TITLE}" --admin_name=admin --admin_password=${ADMIN_PASSWORD} --admin_email=${ADMIN_EMAIL}
 
     printf "\n"
     printf "\n"
