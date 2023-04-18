@@ -139,10 +139,11 @@ read DB_HOST
 if  [ "${DB_HOST}" == "" ]; then
     DB_HOST="127.0.0.1"
 fi
-printf "Enter your database name [wp-control]: "
+printf "Enter your database name: "
 read DB_NAME
 if  [ "${DB_NAME}" == "" ]; then
-    DB_NAME="wp-control"
+    printf "Invalid Database Name, please run this script again to configure your site.\n"
+    exit 0;
 fi
 printf "Enter your database user [admin]: "
 read DB_USER
