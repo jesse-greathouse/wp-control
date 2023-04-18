@@ -244,6 +244,8 @@ if  [ "${CORRECT}" == "y" ]; then
     ##============================
     cp ${ETC}/wordpress/wp-config.php ${WEB}/wp-config.php
     cp ${ETC}/wordpress/env.php ${WEB}/env.php
+    chmod 600  ${WEB}/wp-config.php
+    chmod 600 ${WEB}/env.php
 
     ##============================
     ## Install Wordpress security keys
