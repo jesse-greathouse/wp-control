@@ -496,7 +496,9 @@ if  [ "${CORRECT}" == "y" ]; then
     fi
 
     # Install WordPress
+    printf "Installing WordPress...";
     ${BIN}/wp core install --url=${MAIN_DOMAIN} --title="${SITE_TITLE}" --admin_name=admin --admin_password=${ADMIN_PASSWORD} --admin_email=${ADMIN_EMAIL}
+    printf "\nEnjoy using WordPress :cool:"
 
     printf "\n"
     printf "\n"
