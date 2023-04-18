@@ -243,7 +243,7 @@ if  [ "${CORRECT}" == "y" ]; then
     ## Install Wordpress Config
     ##============================
     cp ${ETC}/wordpress/wp-config.php ${WEB}/wp-config.php
-    cp ${ETC}/wordpress/env.php ${WEB}env.php
+    cp ${ETC}/wordpress/env.php ${WEB}/env.php
 
     ##============================
     ## Install Wordpress security keys
