@@ -85,7 +85,7 @@ link_project($webRoot, $cfg{'skeleton'}{'path'});
 # Trim the whitespace from a string.
 sub  trim { my $s = shift; $s =~ s/^\s+|\s+$//g; return $s };
 
-sub clone_skeleton_repository() {
+sub clone_skeleton_repository {
   my ($remote, $skeletonPath) = @_;
   my @clone = Git::command('clone', $remote, $skeletonPath);
 }
