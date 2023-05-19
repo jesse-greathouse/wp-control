@@ -2,12 +2,15 @@
 
 package WPControl::Config;
 use strict;
+use File::Basename;
+use Cwd qw(getcwd abs_path);
 use YAML::XS qw(LoadFile DumpFile);
 use POSIX qw(strftime);
 use Exporter 'import';
 our @EXPORT_OK = qw(get_configuration save_configuration);
 
-my $applicationRoot = $ENV{'DIR'};
+my $bin = abs_path(dirname(__FILE__) . '/../../');
+my $applicationRoot = abs_path(dirname($bin));
 my $applicatioHiddenFolder = $applicationRoot . '/.wpc';
 my $configurationFileName = '.wp-control-cfg.yml';
 

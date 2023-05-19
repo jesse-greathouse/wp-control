@@ -18,7 +18,18 @@ my $web = $applicationRoot . '/web';
 
 my $os = get_operating_system();
 my $osModule = 'WPControl::Install::' . $os;
-eval "use $osModule qw(install_system_dependencies install_openresty install_php install_perl_modules install_pear install_imagick)";
+eval "use $osModule qw(
+    install_system_dependencies 
+    install_openresty
+    install_php 
+    install_perl_modules 
+    install_pear 
+    install_imagick
+    install_wordpress
+    install_wordpress_skeleton
+    install_cli
+    cleanup
+)";
 1;
 
 # ====================================
@@ -36,10 +47,14 @@ sub get_operating_system {
 # Performs the install routine.
 sub install {
     printf "Installing wp-control at: $applicationRoot\n",
-    #install_system_dependencies();
-    #install_openresty($applicationRoot);
-    #install_php($applicationRoot);
-    #install_perl_modules();
+    install_system_dependencies();
+    install_openresty($applicationRoot);
+    install_php($applicationRoot);
+    install_perl_modules();
     install_pear($applicationRoot);
     install_imagick($applicationRoot);
+    install_wordpress($applicationRoot);
+    install_wordpress_skeleton($applicationRoot);
+    install_cli($applicationRoot);
+    cleanup($applicationRoot);
 }

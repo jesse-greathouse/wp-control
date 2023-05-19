@@ -5,11 +5,23 @@ use strict;
 use Cwd qw(getcwd abs_path);
 use File::Copy;
 use Exporter 'import';
-our @EXPORT_OK = qw(install_system_dependencies install_openresty install_php install_perl_modules install_pear install_imagick);
+our @EXPORT_OK = qw(
+    install_system_dependencies 
+    install_openresty 
+    install_php 
+    install_perl_modules 
+    install_pear 
+    install_imagick
+    install_wordpress
+    install_wordpress_skeleton
+    install_cli
+    cleanup
+);
 
 my @systemDependencies = (
     'supervisor',
     'authbind',
+    'expect',
     'openssl',
     'build-essential',
     'intltool',
@@ -47,7 +59,11 @@ my @perlModules = (
     'YAML::XS',
     'LWP::UserAgent',
     'cpanm LWP::Protocol::https',
+    'Term::ANSIScreen',
     'Term::Menus',
+    'Term::Prompt',
+    'Term::ReadKey',
+    'Text::Wrap',
     'Archive::Zip',
     'File::Slurper',
     'File::HomeDir',
@@ -188,18 +204,19 @@ sub install_perl_modules {
 sub install_pear {
     my ($dir) = @_;
     my $phpIniFile = $dir . '/etc/php/php.ini';
+    my $phpIniBackupFile = $phpIniFile . '.' . time() . '.bak';
 
     # If php.ini exists, hide it before pear installs
     if (-e $phpIniFile) {
-        move($phpIniFile, $phpIniFile . '.bak');
+        move($phpIniFile, $phpIniBackupFile);
     }
 
     system(('bash', '-c', "yes n | $dir/bin/install-pear.sh $dir/opt"));
     command_result($?, $!, 'Install Pear...', "yes n | $dir/bin/install-pear.sh $dir/opt");
 
     # Replace the php.ini file
-    if (-e $phpIniFile . '.bak') {
-         move($phpIniFile . '.bak', $phpIniFile);
+    if (-e $phpIniBackupFile) {
+         move($phpIniBackupFile, $phpIniFile);
     }
 }
 
@@ -207,20 +224,72 @@ sub install_pear {
 sub install_imagick {
     my ($dir) = @_;
     my $phpIniFile = $dir . '/etc/php/php.ini';
-    my $cmd = 'yes n | PATH="' . $dir . '/opt/php/bin:$PATH" ' . $dir . '/opt/pear/bin/pecl install imagick --D PREFIX=""';
+    my $phpIniBackupFile = $phpIniFile . '.' . time() . '.bak';
+    my $cmd = 'yes n | PATH="' . $dir . '/opt/php/bin:$PATH" ' . $dir . '/opt/pear/bin/pecl install imagick';
 
     # If php.ini exists, hide it before pear installs
     if (-e $phpIniFile) {
-        move($phpIniFile, $phpIniFile . '.bak');
+        move($phpIniFile, $phpIniBackupFile);
     }
 
     system(('bash', '-c', $cmd));
     command_result($?, $!, 'Install Imagemagick...', "...");
 
     # Replace the php.ini file
-    if (-e $phpIniFile . '.bak') {
-         move($phpIniFile . '.bak', $phpIniFile);
+    if (-e $phpIniBackupFile) {
+         move($phpIniBackupFile, $phpIniFile);
     }
+}
+
+# installs WordPress
+sub install_wordpress {
+    my ($dir) = @_;
+    my $originalDir = getcwd();
+
+    chdir "$dir/bin";
+    system(('bash', '-c', "OPT=$dir/opt WEB=$dir/web $dir/bin/install-wordpress.pl"));
+    command_result($?, $!, 'Install WordPress...', "OPT=$dir/opt WEB=$dir/web $dir/bin/install-wordpress.pl");
+    chdir $originalDir;
+}
+
+# installs WordPress Skeleton
+sub install_wordpress_skeleton {
+    my ($dir) = @_;
+    my $originalDir = getcwd();
+
+    chdir "$dir/bin";
+    system(('bash', '-c', "DIR=$dir $dir/bin/install-wp-skeleton.pl"));
+    command_result($?, $!, 'Install WordPress Skeleton...', "DIR=$dir $dir/bin/install-wp-skeleton.pl");
+    chdir $originalDir;
+}
+
+sub install_cli {
+    my ($dir) = @_;
+    my $cliFile = $dir . '/bin/wp-cli.phar';
+    my $cliSourceUrl = 'https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar';
+
+    # If cli executable exists, remove it
+    if (-e $cliFile) {
+        unlink($cliFile);
+    }
+
+    system(('bash', '-c', "curl -o $cliFile $cliSourceUrl"));
+    command_result($?, $!, 'Install WordPress CLI...', "curl -o $cliFile $cliSourceUrl");
+    system(('bash', '-c', "chmod +x  $cliFile"));
+    command_result($?, $!, 'Set Permissions on WordPress CLI...', "chmod +x  $cliFile");
+}
+
+sub cleanup {
+    my ($dir) = @_;
+    my $phpBuildDir = glob("$dir/opt/php-*/");
+    my $openrestyBuildDir = glob("$dir/opt/openresty-*/");
+    my $wordpressArchive = glob("$dir/opt/wordpress-*.zip");
+    system(('bash', '-c', "rm -rf $phpBuildDir"));
+    command_result($?, $!, 'Remove PHP Build Dir...', "rm -rf $phpBuildDir");
+    system(('bash', '-c', "rm -rf $openrestyBuildDir"));
+    command_result($?, $!, 'Remove Openresty Build Dir...', "rm -rf $openrestyBuildDir");
+    system(('bash', '-c', "rm -rf $wordpressArchive"));
+    command_result($?, $!, 'Remove WordPress Build Tarball...', "rm $wordpressArchive");
 }
 
 sub command_result {
