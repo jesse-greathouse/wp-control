@@ -166,13 +166,15 @@ sub clean_wordpress_archive {
   my ($dir) = @_;
   my $dh;
 
-  opendir($dh, $dir) || die "can't opendir $dir: $!";
-  my @archives = grep { /^(wordpress.*\.zip)$/ && -f "$dir/$_" } readdir($dh);
-  closedir $dh;
+  if (-d $dir) {
+    opendir($dh, $dir) || die "can't opendir $dir: $!";
+    my @archives = grep { /^(wordpress.*\.zip)$/ && -f "$dir/$_" } readdir($dh);
+    closedir $dh;
 
-  foreach my $file (@archives) {
-    if (-e "$dir/$file") {
-        unlink("$dir/$file");
+    foreach my $file (@archives) {
+      if (-e "$dir/$file") {
+          unlink("$dir/$file");
+      }
     }
   }
 }
