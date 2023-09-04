@@ -63,7 +63,9 @@ define( 'WP_DEBUG', DEBUG );
  * HTTP Proto header tells wordpress which protocol to serve assets from.
  * This can be useful when the WordPress server is behind a reverse proxy.
  */
-if ($_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https') $_SERVER['HTTPS']='on';
+if (isset($_SERVER['HTTP_X_FORWARDED_PROTO'])) {
+    if ($_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https') $_SERVER['HTTPS']='on';
+}
 
 /** Sets up WordPress vars and included files. */
 require_once ABSPATH . 'wp-settings.php';
