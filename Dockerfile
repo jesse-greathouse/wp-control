@@ -67,7 +67,7 @@ ADD opt /app/opt
 ADD bin/install.sh /app/bin/install.sh
 ADD bin/install-pear.sh /app/bin/install-pear.sh
 ADD bin/generate-diffie-hellman.pl /app/bin/generate-diffie-hellman.pl
-ADD bin/bust-opcache.sh /app/bin/bust-opcache.sh
+ADD bin/cleancache /app/bin/cleancache
 
 WORKDIR /app
 

@@ -22,7 +22,7 @@ bin/*
 !bin/install-pear.sh
 !bin/install-pear.sh
 !bin/generate-diffie-hellman.pl
-!bin/bust-opcache.sh
+!bin/cleancache
 
 etc/ssl/CA/.gitkeep
 etc/ssl/certs/.gitkeep

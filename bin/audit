@@ -1,0 +1,171 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+use Getopt::Long;
+use File::Find;
+use File::Spec;
+
+# Command-line options
+my ($mask, $path, $summary, $include_hidden, $help, $verbose) = (undef, '.', 0, 0, 0, 0);
+
+# Parse command-line options
+GetOptions(
+    "mask=s"    => \$mask,
+    "summary"   => \$summary,
+    "hidden!"   => \$include_hidden,
+    "help"      => \$help,
+    "verbose"   => \$verbose,
+) or (warn("Invalid option\n"), print_help_and_exit());
+
+print_help_and_exit() if $help;
+
+# Positional path argument (default to '.')
+$path = shift @ARGV // '.';
+
+# Compile exclusion patterns
+my @excluded_dirs = map { qr/$_/ } (
+    '^\.\/opt$', '^\.\/var$', '^\.\/tmp$', '\.git$', '\.idea$', '\.vscode$',
+    'node_modules$', 'certs?$', 'ssl$',
+    '^\.\/src\/agentzh$',,
+    '^\.\/etc\/ssl\/certs$', '^\.\/etc\/ssl\/private$', '^\.\/etc\/ssl\/CA$',
+    '^\.\/supervisor$'
+);
+
+my @excluded_files = map { qr/$_/ } (
+    '.*\.log$', '.*\.log\..*', '.*\.DS_Store$', '.*\.pem$', '.*\.crt$',
+    '.*\.key$', '.*\.csr$', '.*\.der$', '.*\.pfx$', '.*\.p12$', '.*package\-lock\.json$',
+    '.*postman.*', '.*\.pid$',
+    '^\.\/LICENSE$', '^\.\/README\.md$', '.*angular\.json$', '.*tsconfig\.spec\.json$',
+    '.*tsconfig\.app\.json$', '.*tsconfig\.json$', '.*tslint\.json$', '.*karma\.conf\.js$', '.*polyfills\.ts$',
+    '^\.\/etc\/nginx\/nginx\.conf$', '^\.\/etc\/nginx\/force-ssl\.conf$',
+    '^\.\/etc\/php\/browscap\.ini$', '^\.\/etc\/php\/php\.ini$', '^\.\/etc\/php\-fpm\/php\-fpm\.conf$',
+    '^\.\/etc\/init\.d\/init\-template\.sh$'
+);
+
+# Convert mask to regex
+my $pattern;
+if (defined $mask) {
+    my @masks = split(/\|/, $mask);
+    my @regex_parts;
+
+    foreach my $m (@masks) {
+        $m =~ s{([\.\^\$\[\]\(\)\{\}\+\?\|\\])}{\\$1}g;
+        $m =~ s/\*/.*/g;
+        push @regex_parts, "^$m\$";
+    }
+
+    my $combined_regex = join("|", @regex_parts);
+    $pattern = qr/$combined_regex/;
+}
+
+# Exclusion checks
+sub is_excluded_dir {
+    my ($dir) = @_;
+    foreach my $regex (@excluded_dirs) {
+        return 1 if $dir =~ $regex;
+    }
+    return 0;
+}
+
+sub is_excluded_file {
+    my ($file) = @_;
+    foreach my $regex (@excluded_files) {
+        return 1 if $file =~ $regex;
+    }
+    return 0;
+}
+
+# Binary detection (heuristic)
+sub is_binary_file {
+    my ($filepath) = @_;
+    open my $fh, '<:raw', $filepath or return 1;
+    read($fh, my $chunk, 1024);
+    close $fh;
+    return 1 if $chunk =~ /\x00/;
+    return 0;
+}
+
+# Find and process files
+find({
+    wanted => sub {
+        my $file = $_;
+        my $full_path = $File::Find::name;
+
+        # Exclude directories
+        if (-d $file && is_excluded_dir($file)) {
+            print "[audit] Skipped directory: $full_path\n" if $verbose;
+            $File::Find::prune = 1;
+            return;
+        }
+
+        return unless -f $file;
+
+        if (is_excluded_file($file)) {
+            print "[audit] Skipped file (excluded): $full_path\n" if $verbose;
+            return;
+        }
+
+        unless ($include_hidden) {
+            my @parts = File::Spec->splitdir($full_path);
+            foreach my $part (@parts) {
+                next if $part eq '.';  # ignore leading '.'
+                if ($part =~ /^\./) {
+                    print "[audit] Skipped file (hidden): $full_path\n" if $verbose;
+                    return;
+                }
+            }
+        }
+
+        if (defined $pattern && $file !~ $pattern) {
+            print "[audit] Skipped file (pattern mismatch): $full_path\n" if $verbose;
+            return;
+        }
+
+        if (is_binary_file($full_path)) {
+            print "[audit] Skipped binary file: $full_path\n" if $verbose;
+            return;
+        }
+
+        if ($summary) {
+            print "$full_path\n";
+            return;
+        }
+
+        print "\n--- START $full_path ---\n";
+        open my $fh, '<:encoding(UTF-8)', $file or do {
+            warn "[audit] Could not read $full_path: $!" if $verbose;
+            return;
+        };
+        print while <$fh>;
+        close $fh;
+        print "\n--- END $full_path ---\n";
+    },
+    no_chdir => 1,
+}, $path);
+
+# Help
+sub print_help_and_exit {
+    print <<'EOF';
+Usage: audit [OPTIONS]
+
+Recursively search and optionally print file contents for auditing or context extraction.
+
+Examples:
+  audit                          # Process all files under current directory
+  audit --mask="*.lua"           # Process only .lua files
+  audit --path="./src"           # Start searching in ./src
+  audit --summary                # Show only file paths, no content
+  audit --hidden                 # Include hidden files (e.g. .env)
+  audit --verbose                # Show skipped file and directory messages
+
+Options:
+  --mask="PATTERN"      Glob-style pattern to match files (e.g. "*.pl", "*.cpp")
+  --path=DIR            Directory to start searching from (default: current directory)
+  --summary             Only print file paths, not their contents
+  --hidden              Include hidden files (filenames starting with '.')
+  --verbose             Show detailed information about skipped files and directories
+  --help                Show this help message
+
+EOF
+    exit;
+}

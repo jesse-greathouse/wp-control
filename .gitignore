@@ -7,6 +7,7 @@
 *.launch
 .settings/
 *.sublime-workspace
+.vstags
 
 #vscode junk
 .history/*
@@ -32,7 +33,7 @@ get-pip.py
 # bin
 *-e
 /bin/*
-!bin/bust-opcache.sh
+!bin/cleancache
 !bin/wp.sh.dist
 !bin/generate-diffie-hellman.pl
 !bin/install-pear.sh
