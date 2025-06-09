@@ -79,9 +79,9 @@ etc/ssl/certs/*
 etc/ssl/private/*
 etc/ssl/.rnd
 etc/ssl/.oid
-etc/ssl/openssl.cnf
 etc/ssl/openssl.docker.cnf
 etc/ssl/CA/*
+etc/supervisor/conf.d/supervisord.conf
 
 !etc/com.greathouse.technology.template.plist
 
