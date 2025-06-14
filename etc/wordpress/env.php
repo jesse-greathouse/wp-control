@@ -1,26 +1,5 @@
 <?php
 
-#   +---------------------------------------------------------------------------------+
-#   | This file is part of wp-control                                       |
-#   +---------------------------------------------------------------------------------+
-#   | Copyright (c) 2023 Greathouse Technology LLC (http://www.greathouse.technology) |
-#   +---------------------------------------------------------------------------------+
-#   | wp-control is free software: you can redistribute it and/or modify    |
-#   | it under the terms of the GNU General Public License as published by            |
-#   | the Free Software Foundation, either version 3 of the License, or               |
-#   | (at your option) any later version.                                             |
-#   |                                                                                 |
-#   | wp-control is distributed in the hope that it will be useful,         |
-#   | but WITHOUT ANY WARRANTY; without even the implied warranty of                  |
-#   | MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                   |
-#   | GNU General Public License for more details.                                    |
-#   |                                                                                 |
-#   | You should have received a copy of the GNU General Public License               |
-#   | along with wp-control.  If not, see <http://www.gnu.org/licenses/>.   |
-#   +---------------------------------------------------------------------------------+
-#   | Author: Jesse Greathouse <jesse@greathouse.technology>                          |
-#   +---------------------------------------------------------------------------------+
-
 if (!defined('USER')) {
     define('USER', $_ENV['USER']);
 }
@@ -65,12 +44,28 @@ if (!defined('LOG_DIR')) {
     define('LOG_DIR', $_ENV['LOG_DIR']);
 }
 
+if (!defined('PORT')) {
+    define('PORT', $_ENV['PORT']);
+}
+
 if (!defined('DEBUG')) {
     define('DEBUG', settype($_ENV['DEBUG'], "boolean"));
 }
 
 if (!defined('REDIS_HOST')) {
     define('REDIS_HOST', $_ENV['REDIS_HOST']);
+}
+
+if (!defined('REDIS_PORT')) {
+    define('REDIS_PORT', $_ENV['REDIS_PORT']);
+}
+
+if (!defined('REDIS_DB')) {
+    define('REDIS_DB', $_ENV['REDIS_DB']);
+}
+
+if (!defined('REDIS_PASSWORD')) {
+    define('REDIS_PASSWORD', $_ENV['REDIS_PASSWORD']);
 }
 
 if (!defined('DB_NAME')) {
@@ -95,4 +90,15 @@ if (!defined('DB_PORT')) {
 
 if (!defined('DS')) {
     define('DS', DIRECTORY_SEPARATOR);
+}
+
+define('DB_CHARSET', 'utf8');
+
+define('DB_COLLATE', '');
+
+// Optional user-defined local environment overrides
+$envLocalPath = WEB_DIR . DIRECTORY_SEPARATOR . 'env-local.php';
+
+if (file_exists($envLocalPath)) {
+    require $envLocalPath;
 }

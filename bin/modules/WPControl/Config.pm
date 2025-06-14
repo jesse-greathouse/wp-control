@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-package WPControl::Configure;
+package WPControl::Config;
 
 use strict;
 use warnings;
@@ -90,6 +90,9 @@ sub save_configuration {
     if ($@) {
         die "Failed to save configuration file: $@";
     }
+
+    # Security: Make the config file only read/write by owner.
+    chmod 0600, $configFile or warn "⚠️ Failed to set restrictive permissions on config file.\n";
 }
 
 # Writes a configuration file from a template, replacing placeholders with values

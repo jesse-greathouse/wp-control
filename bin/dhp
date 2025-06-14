@@ -1,0 +1,59 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use File::Basename;
+use Scalar::Util qw(looks_like_number);
+use Cwd qw(abs_path);
+use lib dirname(abs_path(__FILE__)) . "/modules";
+use WPControl::Utility qw(command_result);
+
+warn $@ if $@; # Handle exceptions
+
+# Dynamically resolve application layout
+my $binDir          = abs_path(dirname(__FILE__));
+my $applicationRoot = abs_path(dirname($binDir));
+my $etc             = "$applicationRoot/etc";
+
+# Defaults
+my $bitDepth  = 3072;
+my $overwrite = 0;
+
+# Parse CLI args
+for (my $i = 0; $i < @ARGV; $i++) {
+    if ($ARGV[$i] eq '--overwrite') {
+        $overwrite = 1;
+    } elsif ($ARGV[$i] eq '--bitdepth') {
+        my $newBitDepth = $ARGV[++$i];
+        looks_like_number($newBitDepth) ? ($bitDepth = $newBitDepth)
+            : die "Invalid bitdepth: $newBitDepth\n";
+    }
+}
+
+# Build cert path
+my $certDir     = "$etc/ssl/certs";
+my $dhparamFile = "$certDir/dhparam.pem";
+
+# Delete existing file if --overwrite is set
+unlink $dhparamFile if $overwrite && -e $dhparamFile;
+
+# Generate if missing
+if (!-e $dhparamFile) {
+    my @cmd = ('openssl', 'dhparam', '-out', $dhparamFile, $bitDepth);
+    system(@cmd);
+    command_result($?, $!, "openssl dhparam", \@cmd);
+    print "\n";
+} else {
+    print "...dhp file already exists. skipping...\n";
+    exit 0;
+}
+
+# Validate the file
+print "...validating dhparam file integrity...\n";
+my $validate_output = system("openssl dhparam -in '$dhparamFile' -check > /dev/null 2>&1");
+
+if ($validate_output != 0) {
+    die "ERROR: dhparam.pem failed validation. Please regenerate using --overwrite\n";
+} else {
+    print "...dhparam.pem is valid.\n";
+}

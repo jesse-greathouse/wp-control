@@ -1,0 +1,21 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use File::Basename qw(dirname);
+use Cwd qw(abs_path);
+use Getopt::Long;
+
+use lib(dirname(abs_path(__FILE__)) . "/modules");
+use WPControl::Utility qw(wordpress_database_restore);
+
+# Parse arguments
+my $archive;
+
+GetOptions(
+    "archive=s" => \$archive,
+) or die "Usage: bin/db-restore [--archive=PATH_TO_ZIP]\n";
+
+wordpress_database_restore(
+    archive => $archive,
+);

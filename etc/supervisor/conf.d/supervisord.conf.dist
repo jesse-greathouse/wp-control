@@ -16,7 +16,7 @@ password=__SUPERVISORCTL_SECRET__
 supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
 
 [program:cleancache]
-process_name=%(ENV_APP_NAME)s_web_%(program_name)s
+process_name=%(ENV_SITE_NAME)s_web_%(program_name)s
 directory=%(ENV_DIR)s
 command=bin/cleancache
 stdout_events_enabled=true
@@ -29,8 +29,8 @@ autorestart = false
 priority=1
 
 [program:dhp]
-process_name=%(ENV_APP_NAME)s_web_%(program_name)s
-environment=ETC="%(ENV_ETC)s",PATH="%(ENV_BIN)s:%(ENV_PATH)s"
+process_name=%(ENV_SITE_NAME)s_web_%(program_name)s
+environment=PATH="%(ENV_BIN)s:%(ENV_PATH)s"
 directory=%(ENV_DIR)s
 command=bin/dhp
 stdout_events_enabled=true
@@ -43,7 +43,7 @@ autorestart = false
 priority=2
 
 [program:php]
-process_name=%(ENV_APP_NAME)s_web_%(program_name)s
+process_name=%(ENV_SITE_NAME)s_web_%(program_name)s
 environment=PATH="%(ENV_BIN)s:%(ENV_OPT)s/php/sbin:%(ENV_PATH)s"
 directory=%(ENV_DIR)s
 command=php-fpm -y etc/php-fpm.d/php-fpm.conf
@@ -55,8 +55,8 @@ autorestart = true
 priority=3
 
 [program:nginx]
-process_name=%(ENV_APP_NAME)s_web_%(program_name)s
-environment=ENV=%(ENV_ENV)s,DEBUG=%(ENV_DEBUG)s,SSL=%(ENV_SSL)s,REDIS_HOST=%(ENV_REDIS_HOST)s,DIR="%(ENV_DIR)s",BIN="%(ENV_BIN)s",ETC="%(ENV_ETC)s",OPT="%(ENV_OPT)s",TMP="%(ENV_TMP)s",VAR="%(ENV_VAR)s",SRC="%(ENV_SRC)s",WEB="%(ENV_WEB)s",LOG_DIR="%(ENV_LOG_DIR)s",CACHE_DIR="%(ENV_CACHE_DIR)s",DB_HOST="%(ENV_DB_HOST)s",DB_USER="%(ENV_DB_USER)s",DB_PASSWORD="%(ENV_DB_PASSWORD)s",DB_NAME="%(ENV_DB_NAME)s",DB_PORT="%(ENV_DB_PORT)s",PORT="%(ENV_PORT)s"
+process_name=%(ENV_SITE_NAME)s_web_%(program_name)s
+environment=DEBUG=%(ENV_DEBUG)s,SSL=%(ENV_SSL)s,PORT="%(ENV_PORT)s",REDIS_HOST="%(ENV_REDIS_HOST)s",REDIS_DB="%(ENV_REDIS_DB)s",REDIS_PORT=%(ENV_REDIS_PORT)s,REDIS_PASSWORD="%(ENV_REDIS_PASSWORD)s",DIR="%(ENV_DIR)s",BIN="%(ENV_BIN)s",ETC="%(ENV_ETC)s",OPT="%(ENV_OPT)s",TMP="%(ENV_TMP)s",VAR="%(ENV_VAR)s",SRC="%(ENV_SRC)s",WEB="%(ENV_WEB)s",LOG_DIR="%(ENV_LOG_DIR)s",CACHE_DIR="%(ENV_CACHE_DIR)s",DB_HOST="%(ENV_DB_HOST)s",DB_USER="%(ENV_DB_USER)s",DB_PASSWORD="%(ENV_DB_PASSWORD)s",DB_NAME="%(ENV_DB_NAME)s",DB_PORT="%(ENV_DB_PORT)s",PATH="%(ENV_BIN)s:%(ENV_OPT)s/openresty/nginx/sbin:%(ENV_PATH)s"
 directory=%(ENV_DIR)s
 command=authbind --deep nginx -p %(ENV_OPT)s/openresty/nginx -c %(ENV_ETC)s/nginx/nginx.conf
 stdout_events_enabled=true

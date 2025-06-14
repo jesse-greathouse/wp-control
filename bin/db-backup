@@ -1,0 +1,11 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use File::Basename qw(dirname);
+use Cwd qw(abs_path);
+
+use lib(dirname(abs_path(__FILE__)) . "/modules");
+use WPControl::Utility qw(wordpress_database_backup);
+
+wordpress_database_backup();

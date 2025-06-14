@@ -1,0 +1,40 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use Cwd qw(abs_path);
+use File::Basename;
+use File::Spec;
+
+# Import application modules
+use lib(File::Spec->catdir(abs_path(dirname(__FILE__)), 'modules'));
+use WPControl::Utility qw(is_wordpress_db_installed wordpress_database_backup);
+
+# Resolve the path to bin/install-wordpress
+my $binDir = abs_path(dirname(__FILE__));
+my $install_script = File::Spec->catfile($binDir, 'install-wordpress');
+
+# Sanity check
+unless (-x $install_script) {
+    die "Error: '$install_script' not found or not executable.\n";
+}
+
+# Create a database backup so the user can revert if something goes wrong.
+db_snapshot();
+
+# Re-execute the script with all original arguments
+exec($install_script, @ARGV) or die "Failed to exec $install_script: $!\n";
+
+sub db_snapshot {
+    unless (is_wordpress_db_installed()) {
+        print "Skipping DB snapshot — WordPress database not detected.\n";
+        return;
+    }
+
+    print "\n=================================================================\n";
+    print " WordPress Database Backup\n";
+    print "=================================================================\n\n";
+
+    print "📀 Creating database snapshot...\n";
+    wordpress_database_backup();
+}

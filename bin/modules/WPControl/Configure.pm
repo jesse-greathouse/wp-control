@@ -11,7 +11,9 @@ use Term::Prompt qw(prompt termwrap);
 use Term::ANSIScreen qw(cls);
 use lib(dirname(abs_path(__FILE__)) . "/../modules");
 use WPControl::Config qw(get_configuration save_configuration write_config_file);
-use WPControl::Utility qw(splash generate_rand_str);
+use WPControl::Utility qw(
+    splash generate_rand_str validate_required_fields
+);
 use WPControl::RefreshKeysAndSalts qw(refresh_keys_and_salts);
 
 our @EXPORT_OK = qw(configure configure_help);
@@ -34,9 +36,6 @@ my $logDir          = "$varDir/log";
 my $cacheDir        = "$varDir/cache";
 
 my $secret = generate_rand_str();
-
-# Default Supervisor control ports
-my $supervisorPort = 5962;
 
 # Files
 my $sslCertificate  = "$etcDir/ssl/certs/wp-control.cert";
@@ -69,18 +68,30 @@ my %defaults = (
     SSL_CERT     => $sslCertificate,
     SSL_KEY      => $sslKey,
     IS_SSL       => 'false',
-    MAIN_DOMAIN  => 'example.com',
-    SITE_DOMAINS => 'www.example.com',
+    HOST_NAMES   => '127.0.0.1 localhost',
   },
   wordpress => {
       SITE_TITLE     => 'Just Another WordPress Site',
+      SITE_URL       => 'http://localhost:8181',
       DB_HOST        => '127.0.0.1',
       DB_PORT        => '3306',
       DEBUG          => 'true',
+      REDIS_DB       => '0',
+      REDIS_HOST     => '127.0.0.1',
+      REDIS_PASSWORD => 'null',
+      REDIS_PORT     => '6379',
   },
-  supervisors => {
+  supervisord => {
       SUPERVISORCTL_USER => $ENV{"LOGNAME"},
   },
+);
+
+my @required_fields = (
+    ['meta',      'SITE_NAME'],
+    ['wordpress', 'ADMIN_EMAIL'],
+    ['wordpress', 'DB_NAME'],
+    ['wordpress', 'DB_USER'],
+    ['wordpress', 'DB_PASSWORD'],
 );
 
 # ================================
@@ -111,10 +122,13 @@ sub configure {
         cls();
         splash();
         print "\n=================================================================\n";
-        print " This will configure your WordPress hosting environment\n";
+        print " This will configure your WordPress Application Environment\n";
         print "=================================================================\n\n";
         merge_defaults();
         prompt_user_input();
+
+        # Stop here if required fields were not submitted.
+        validate_required_fields(\@required_fields, \%cfg);
     }
 
     assign_dynamic_config();
@@ -129,6 +143,10 @@ sub configure {
     }
 
     if ($interactive) {
+        prompt_wp_install();
+        prompt_wp_skeleton_install();
+        prompt_db_install();
+        do_db_backup();
         prompt_refresh_keys_and_salts();
         prompt_admin_password();
     } else {
@@ -136,8 +154,12 @@ sub configure {
         -e $keysAndSalts or refresh_keys_and_salts();
 
         print "\nConfiguration completed in non-interactive mode.\n";
-        print "Note: If this is a fresh install, be sure to manually run the following commands as needed:\n";
-        print "  bin/refresh-wp-keys-and-salts  # Run database migrations\n";
+        print "Note: If this is a fresh install, be sure to manually run the following commands as needed:\n\n";
+        print "  bin/install-wordpress           # Install or update WordPress core files\n";
+        print "  bin/install-wp-skeleton         # Install or update site code, plugins, and themes\n";
+        print "  bin/install-wp-db               # Install the WordPress database tables\n";
+        print "  bin/db-backup                   # Install the WordPress database tables\n";
+        print "  bin/refresh-wp-keys-and-salts   # Refresh security keys and invalidate existing sessions\n\n";
     }
 }
 
@@ -160,18 +182,29 @@ sub merge_defaults {
     }
 }
 
+sub is_required {
+    my ($d, $k) = @_;
+    return grep { $_->[0] eq $d && $_->[1] eq $k } @required_fields;
+}
+
 sub assign_dynamic_config {
     # Assign essential directory paths
+    $cfg{nginx}{DIR}          //= $applicationRoot;
     $cfg{nginx}{WEB}          //= $webDir;
     $cfg{nginx}{VAR}          //= $varDir;
-    $cfg{nginx}{LOG}          //= $logDir;
     $cfg{nginx}{ETC}          //= $etcDir;
     $cfg{nginx}{OPT}          //= $optDir;
     $cfg{nginx}{SRC}          //= $srcDir;
     $cfg{nginx}{TMP}          //= $tmpDir;
     $cfg{nginx}{BIN}          //= $binDir;
-    $cfg{nginx}{CACHE}        //= $cacheDir;
-    $cfg{nginx}{DIR}          //= $applicationRoot;
+    $cfg{nginx}{CACHE_DIR}    //= $cacheDir;
+    $cfg{nginx}{LOG_DIR}      //= $cacheDir;
+    $cfg{nginx}{LOG}          //= $errorLog;
+
+    $cfg{nginx}{REDIS_HOST}     //= $cfg{wordpress}{REDIS_HOST};
+    $cfg{nginx}{REDIS_DB}       //= $cfg{wordpress}{REDIS_DB};
+    $cfg{nginx}{REDIS_PORT}     //= $cfg{wordpress}{REDIS_PORT};
+    $cfg{nginx}{REDIS_PASSWORD} //= $cfg{wordpress}{REDIS_PASSWORD};
 
     $cfg{nginx}{USER} //= $ENV{"LOGNAME"};
     $cfg{nginx}{SESSION_SECRET} //= $secret;
@@ -191,38 +224,67 @@ sub assign_dynamic_config {
     # Assign dynamically generated values that are not part of %defaults
     $cfg{supervisord}{SUPERVISORCTL_USER} //= $ENV{"LOGNAME"};
     $cfg{supervisord}{SUPERVISORCTL_SECRET} //= $secret;
-    $cfg{supervisord}{SUPERVISORCTL_PORT} //= $supervisorPort;
 }
 
 sub prompt_user_input {
-      my @fields = (
-        ['meta',      'SITE_NAME',     'Site Label'],
-        ['wordpress', 'ADMIN_EMAIL',   'Admin Email Address'],
-        ['wordpress', 'SITE_TITLE',    'Site Title'],
-        ['wordpress', 'DB_HOST',       'Database Host'],
-        ['wordpress', 'DB_NAME',       'Database Name'],
-        ['wordpress', 'DB_USER',       'Database Username'],
-        ['wordpress', 'DB_PASSWORD',   'Database Password'],
-        ['wordpress', 'DB_PORT',       'Database Port'],
-        ['wordpress', 'DEBUG',         'Enable Debugging'],
-        ['nginx',     'MAIN_DOMAIN',   'Primary Domain Name'],
-        ['nginx',     'SITE_DOMAINS',  'Additional Domains (space-separated)'],
-        ['nginx',     'IS_SSL',        'Enable SSL (HTTPS)'],
-        ['nginx',     'SSL_CERT',      'SSL Certificate Path (if using HTTPS)'],
-        ['nginx',     'SSL_KEY',       'SSL Key Path (if using HTTPS)'],
-        ['nginx',     'PORT',          'Web Server Port'],
+    my $default;
+    my @fields = (
+        ['meta',        'SITE_NAME',          'Site Label'],
+        ['nginx',       'HOST_NAMES',         'Server Host Names (nginx server_name)'],
+        ['nginx',       'IS_SSL',             'Enable SSL (HTTPS)'],
+        ['nginx',       'SSL_CERT',           'SSL Certificate Path (if using HTTPS)'],
+        ['nginx',       'SSL_KEY',            'SSL Key Path (if using HTTPS)'],
+        ['nginx',       'PORT',               'Web Server Port'],
+        ['supervisord', 'SUPERVISORCTL_PORT', 'Supervisor Control Port'],
+        ['wordpress',   'ADMIN_EMAIL',        'Admin Email Address'],
+        ['wordpress',   'SITE_TITLE',         'Site Title'],
+        ['wordpress',   'SITE_URL',           'Site URL (WordPress siteurl)'],
+        ['wordpress',   'DEBUG',              'Enable Debugging'],
+        ['wordpress',   'DB_HOST',            'Database Host'],
+        ['wordpress',   'DB_NAME',            'Database Name'],
+        ['wordpress',   'DB_USER',            'Database Username'],
+        ['wordpress',   'DB_PASSWORD',        'Database Password'],
+        ['wordpress',   'DB_PORT',            'Database Port'],
+        ['wordpress',   'REDIS_HOST',         'Redis Host'],
+        ['wordpress',   'REDIS_PORT',         'Redis Port'],
+        ['wordpress',   'REDIS_PASSWORD',     'Redis Password (or null)'],
+        ['wordpress',   'REDIS_DB',           'Redis DB Index'],
     );
 
     foreach my $field (@fields) {
         my ($domain, $key, $label) = @$field;
-        if ($key =~ /DEBUG|IS_SSL/) {
+
+        if ($domain eq 'supervisord' && $key eq 'SUPERVISORCTL_PORT') {
+            $cfg{$domain}{$key} = prompt_supervisor_port();
+        }
+        elsif ($key =~ /DEBUG|IS_SSL/) {
             $cfg{$domain}{$key} = prompt_boolean($cfg{$domain}{$key}, $label);
-        } elsif ($key =~ /PORT/) {
+        }
+        elsif ($key =~ /PORT/) {
             $cfg{$domain}{$key} = prompt_integer($cfg{$domain}{$key}, $label);
-        } else {
+        }
+        elsif (is_required($domain, $key)) {
+            $default = defined $cfg{$domain}{$key} ? ($cfg{$domain}{$key} || '') : '';
+            $cfg{$domain}{$key} = prompt_with_validation($domain, $key, $label, $default);
+        }
+        else {
             $cfg{$domain}{$key} = prompt('x', "$label:", '', $cfg{$domain}{$key});
         }
     }
+}
+
+sub prompt_supervisor_port {
+    my $current = $cfg{supervisord}{SUPERVISORCTL_PORT};
+    my $default;
+
+    if (defined($current) && $current =~ /^\d+$/) {
+        $default = $current;
+    } else {
+        srand();
+        $default = int(40000 + rand(20000));
+    }
+
+    return prompt_integer($default, 'Supervisor Control Port');
 }
 
 sub prompt_boolean {
@@ -239,6 +301,110 @@ sub prompt_integer {
         return $val if $val =~ /^\d+$/;
         print "Invalid input. Please enter an integer.\n";
     }
+}
+
+sub prompt_with_validation {
+    my ($domain, $key, $label, $default) = @_;
+    my $help = '';
+    $help = 'value required' if $default eq '';
+
+    my $value = prompt(
+        's',               # 's' = code ref validation
+        "$label:",         # prompt message
+        $help,             # help text
+        $default,          # default
+        sub { 1; }
+    );
+
+    return $value;
+}
+
+sub prompt_wp_install {
+    require WPControl::Utility;
+    WPControl::Utility->import(qw(get_wordpress_version));
+
+    print "\n=================================================================\n";
+    print " WordPress Codebase Check\n";
+    print "=================================================================\n\n";
+
+    my $version;
+    eval {
+        $version = get_wordpress_version();
+    };
+
+    if (!$@ && defined $version && $version ne '') {
+        print "✅ WordPress is already installed.\n";
+        print "→ Version: $version\n\n";
+        return;
+    }
+
+    print "WordPress does not appear to be installed. Bootstrapping...\n\n";
+
+    my $install_script = "$binDir/install-wordpress";
+
+    unless (-x $install_script) {
+        die "❌ Unable to locate or execute: $install_script\n";
+    }
+
+    system($install_script) == 0
+        or die "❌ WordPress installation failed via: $install_script\n";
+}
+
+
+sub prompt_wp_skeleton_install {
+    my $wp_content_dir = "$webDir/wp-content";
+
+    # If the wp-content directory exists, WordPress skeleton is considered installed.
+    return if -d $wp_content_dir;
+
+    print "\n=================================================================\n";
+    print " WordPress Skeleton Installation\n";
+    print "=================================================================\n\n";
+
+    print "WordPress skeleton not found. Bootstrapping...\n\n";
+
+    my $skeleton_script = "$binDir/install-wp-skeleton";
+
+    unless (-x $skeleton_script) {
+        die "❌ Unable to locate or execute: $skeleton_script\n";
+    }
+
+    system($skeleton_script) == 0
+        or die "❌ WordPress skeleton installation failed via: $skeleton_script\n";
+}
+
+sub prompt_db_install {
+    require WPControl::Utility;
+    WPControl::Utility->import(qw(
+        is_wordpress_db_installed
+        prompt_user_password
+        install_wordpress_database
+    ));
+
+    # Skip if already installed
+    if (is_wordpress_db_installed()) {
+        return;
+    }
+
+    print "\n=================================================================\n";
+    print " WordPress Database Installation\n";
+    print "=================================================================\n\n";
+
+    print "The WordPress database is not yet installed.\n";
+    print "This will run 'wp core install' to bootstrap the database.\n\n";
+
+    my $admin_user     = prompt('x', "Enter admin username:", '', 'admin');
+    my $admin_password = prompt_user_password();
+
+    my $url         = $cfg{wordpress}{SITE_URL};
+    my $site_title  = $cfg{wordpress}{SITE_TITLE}  || 'Just Another WordPress Site';
+    my $admin_email = $cfg{wordpress}{ADMIN_EMAIL} || '';
+
+    unless ($admin_email) {
+        die "❌ Admin email is not configured. Please set ADMIN_EMAIL in configuration.\n";
+    }
+
+    install_wordpress_database($url, $site_title, $admin_user, $admin_email, $admin_password);
 }
 
 # Displays a prompt to refresh WordPress Keys and Salts file.
@@ -278,8 +444,36 @@ sub prompt_admin_password {
     my $answer = prompt('y', "Set the admin password now?", '', 'n');
 
     if ($answer eq 'y') {
-      #TODO: Change admin passowrd.
+      require WPControl::Utility;
+      WPControl::Utility->import(qw(prompt_user_password update_wordpress_user_password));
+
+      my $email = $cfg{wordpress}{ADMIN_EMAIL} // '';
+      unless ($email) {
+          print "❌ Admin email is not configured. Cannot proceed with password update.\n";
+          return;
+      }
+
+      print "\nEnter a new password for the admin user ($email):\n";
+      my $password = prompt_user_password();
+
+      update_wordpress_user_password($email, $password);
+  }
+}
+
+sub do_db_backup {
+    require WPControl::Utility;
+    WPControl::Utility->import(qw(is_wordpress_db_installed wordpress_database_backup));
+
+    if (!is_wordpress_db_installed()) {
+        return;
     }
+
+    print "\n=================================================================\n";
+    print " WordPress Database Backup\n";
+    print "=================================================================\n\n";
+
+    print "📀 Creating database snapshot...\n";
+    wordpress_database_backup();
 }
 
 1;
