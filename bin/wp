@@ -29,7 +29,24 @@ my $php_path   = "$php_dir/php";
 my $wp_cli     = "$web/vendor/wp-cli/wp-cli/php/boot-fs.php";  # PHP entry point
 
 die "PHP executable not found at $php_path\n" unless -x $php_path;
-die "wp-cli not found at $wp_cli\n"           unless -f $wp_cli;
+
+# Validate wp-cli existence and executable bit
+unless (-f $wp_cli) {
+    print STDERR <<"EOM";
+
+❌ wp-cli not found at: $wp_cli
+
+It looks like WordPress CLI hasn't been installed yet.
+
+To install it, run:
+    ./bin/install --wordpress (installs wp-cli)
+    ./bin/install-wordpress   (installs the WordPress code based on your version of choice)
+
+Once installed, this wrapper will forward commands to wp-cli properly.
+
+EOM
+    exit 1;
+}
 
 # Load configuration
 my %cfg = get_configuration();

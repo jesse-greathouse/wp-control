@@ -149,6 +149,7 @@ sub configure {
         do_db_backup();
         prompt_refresh_keys_and_salts();
         prompt_admin_password();
+        prompt_finalize();
     } else {
         # run keys and salts if it doesn't exist:
         -e $keysAndSalts or refresh_keys_and_salts();
@@ -475,5 +476,28 @@ sub do_db_backup {
     print "📀 Creating database snapshot...\n";
     wordpress_database_backup();
 }
+
+sub prompt_finalize {
+    print "\n=================================================================\n";
+    print " Configuration Complete\n";
+    print "=================================================================\n\n";
+
+    print "🎉 wp-control has been successfully configured!\n";
+    print "Your WordPress instance is now ready to use.\n\n";
+
+    print "🚀 To start your application, run:\n";
+    print "    bin/wp-control start\n\n";
+
+    print "🛠️ You can manage your application using the following commands:\n";
+    print "    bin/wp-control start     — Launch web services\n";
+    print "    bin/wp-control restart   — Restart web services\n";
+    print "    bin/wp-control stop      — Stop web services\n";
+    print "    bin/wp-control kill      — Kill supervisor-managed processes\n";
+    print "    bin/wp-control help      — Show this help message\n\n";
+
+    print "💡 For further updates, backups, or user management,\n";
+    print "   refer to the other scripts in the bin/ directory.\n\n";
+}
+
 
 1;

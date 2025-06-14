@@ -656,7 +656,7 @@ sub splash() {
   print ('| Copyright (c) 2023 Jesse Greathouse (https://github.com/jesse-greathouse/wp-control) |'."\n");
   print ('+--------------------------------------------------------------------------------------+'."\n");
   print ('| wp-control is free software: you can redistribute it and/or modify it under the      |'."\n");
-  print ('| terms of the Free Software Foundation, either version 3 of the License, or GNU    |'."\n");
+  print ('| terms of the Free Software Foundation, either version 3 of the License, or GNU       |'."\n");
   print ('| General Public License as published by (at your option) any later version.           |'."\n");
   print ('|                                                                                      |'."\n");
   print ('| wp-control is distributed in the hope that it will be useful, but WITHOUT ANY        |'."\n");

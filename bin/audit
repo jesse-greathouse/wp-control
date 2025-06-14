@@ -24,22 +24,22 @@ $path = shift @ARGV // '.';
 
 # Compile exclusion patterns
 my @excluded_dirs = map { qr/$_/ } (
-    '^\.\/opt$', '^\.\/var$', '^\.\/tmp$', '\.git$', '\.idea$', '\.vscode$',
-    'node_modules$', 'certs?$', 'ssl$',
-    '^\.\/src\/agentzh$',,
-    '^\.\/etc\/ssl\/certs$', '^\.\/etc\/ssl\/private$', '^\.\/etc\/ssl\/CA$',
+    '^\.\/opt$', '^\.\/web$', '^\.\/var$', '^\.\/tmp$', '\.git$', '\.idea$', '\.vscode$',
+    'node_modules$', 'vendor$', 'certs?$', 'ssl$',
+    '^\.\/src\/agentzh$', '^\.\/etc\/ssl\/certs$', '^\.\/etc\/ssl\/private$', '^\.\/etc\/ssl\/CA$',
     '^\.\/supervisor$'
 );
 
 my @excluded_files = map { qr/$_/ } (
-    '.*\.log$', '.*\.log\..*', '.*\.DS_Store$', '.*\.pem$', '.*\.crt$',
+    '.*\.log$', '.*\.log\..*', '.*\.DS_Store$', '.*\.pem$', '.*\.crt$', '^\.\/bin/composer',
     '.*\.key$', '.*\.csr$', '.*\.der$', '.*\.pfx$', '.*\.p12$', '.*package\-lock\.json$',
-    '.*postman.*', '.*\.pid$',
+    '.*postman.*', '.*\.pid$', '^\.\/commit\.txt',
     '^\.\/LICENSE$', '^\.\/README\.md$', '.*angular\.json$', '.*tsconfig\.spec\.json$',
     '.*tsconfig\.app\.json$', '.*tsconfig\.json$', '.*tslint\.json$', '.*karma\.conf\.js$', '.*polyfills\.ts$',
     '^\.\/etc\/nginx\/nginx\.conf$', '^\.\/etc\/nginx\/force-ssl\.conf$',
-    '^\.\/etc\/php\/browscap\.ini$', '^\.\/etc\/php\/php\.ini$', '^\.\/etc\/php\-fpm\/php\-fpm\.conf$',
-    '^\.\/etc\/init\.d\/init\-template\.sh$'
+    '^\.\/etc\/php\/browscap\.ini$', '^\.\/etc\/php\/php\.ini$',
+    '^\.\/etc\/php\-fpm\.d\/php\-fpm\.conf$', '^\.\/etc\/php\-fpm\.d\/www\.conf\.default$',
+    '^\.\/etc\/init\.d\/init\-template\.sh$', '^\.\/etc\/supervisor\/conf.d\/supervisord\.conf$'
 );
 
 # Convert mask to regex

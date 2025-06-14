@@ -1,0 +1,50 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use Cwd qw(getcwd abs_path);
+use File::Basename;
+use lib dirname(abs_path(__FILE__)) . "/modules";
+
+use WPControl::Web qw(
+    web_start web_restart web_stop web_kill web_status web_help
+);
+
+warn $@ if $@;  # catch compile-time errors
+
+# Get the command
+my ($action) = @ARGV;
+$action //= 'help';
+
+# Command dispatch
+if ($action eq 'start') {
+    web_start();
+
+} elsif ($action eq 'restart') {
+    web_restart();
+
+} elsif ($action eq 'stop') {
+    web_stop();
+
+} elsif ($action eq 'kill') {
+    web_stop();
+    web_kill();
+
+} elsif ($action eq 'status') {
+    web_status();
+
+} elsif ($action eq 'help' or $action =~ /^(-h|--help)$/) {
+    print <<"EOF";
+Usage: wp-control [start|restart|stop|kill|status|help]
+
+  start     — start the web subsystem
+  restart   — restart the web subsystem
+  stop      — gracefully stop the web subsystem
+  kill      — force-stop and kill all web subsystem processes
+  status    — show the current status of all web-managed services
+  help      — show this help message
+EOF
+
+} else {
+    die "❌ Unknown action '$action'. Use 'wp-control help' for available commands.\n";
+}

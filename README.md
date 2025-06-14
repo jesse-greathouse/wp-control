@@ -36,39 +36,81 @@ At the completion of the **install** script, the **configure** script will be ki
 
 `bin/configure`
 
-- **Site Name**: This is the colloquial name of your site. It doesn't have anything to do with a Wordpress configuration, rather it's how your site is identified to the wp-control system.
-- **Domains**: The domains with which your site is identified to the web server. If your site has multiple domains you should list them delimited by a space. e.g.:
-  - `mysite.com www.mysite.com subdomain.mysite.com`
-- **Port**: This is the port by which your site will be served from the web server.
-  - *Note: If you use port 80, 443 (SSL), or any port 1024 or under, the system will require you to use your sudo password, to set up an [authbind](http://manpages.ubuntu.com/manpages/impish/man1/authbind.1.html) configuration for the port ports. The wp-control system runs as a regular user, without elevated privileges, so authbind is required to bind with ports that would normally require elevated privileges.
-- **Database Host**: This is the hostname or IP address of your database.
-- **Database Name**: The name of the schema you intend to use.
-- **Database User**: The database user name which is intended to use your schema.
-- **Database Password**: The password of your database user.
-- **Database Port**: I do not think Wordpress has functionality for changing the database port. I recommend leaving this at 3306.
-- **Redis Host**: If you intend to use Redis with your application, you can enter the redis hostname or IP address here.
-- **Use HTTPS**: If you are running this web server to be accessed using https (ssl) , select y for this answer. If you answer yes to this question, it will go through some steps to configure your SSL security certificate and key.
-- **Debug**: This will indicate whether you are running your application in "debug mode". This is not recommended for a production environment.
-  - *Note: If you intend to do PHP development in this project, it is recommended to use debug mode. If the project is not in debug mode, the PHP code will be cached via Opcache, and therefore a change to the PHP code will require a server restart to be changed in memory.
+You will be prompted to provide:
+
+| Prompt                           | Description                                                                |
+| -------------------------------- | -------------------------------------------------------------------------- |
+| **Site Label**                   | Internal label used to namespace supervisor services, sockets, etc.        |
+|                                  | *Required*                                                                 |
+| **Server Host Names**            | Domain names for nginx `server_name`. Separate multiple names with spaces. |
+|                                  | *Default*: `127.0.0.1 localhost`                                           |
+| **Enable SSL (HTTPS)**           | Configure HTTPS support. Accepts `y` or `n`.                               |
+|                                  | *Default*: `n`                                                             |
+| **SSL Certificate Path**         | Path to `.cert` file (only shown if HTTPS is enabled).                     |
+|                                  | *Default*: `etc/ssl/certs/wp-control.cert`                                 |
+| **SSL Key Path**                 | Path to `.key` file (only shown if HTTPS is enabled).                      |
+|                                  | *Default*: `etc/ssl/private/wp-control.key`                                |
+| **Web Server Port**              | Port the web server listens on.                                            |
+|                                  | *Default*: `8181`                                                          |
+| **Supervisor Control Port**      | Supervisor's HTTP control port.                                            |
+|                                  | *Default*: `randomized`                                                    |
+| **Admin Email Address**          | Used in certs, notifications, and default WordPress admin.                 |
+|                                  | *Required*                                                                 |
+| **Site Title**                   | Title of your WordPress site.                                              |
+|                                  | *Default*: `Just another WordPress Site`                                   |
+| **Site URL (WordPress siteurl)** | The full URL of your WordPress installation (including https\:// if used). |
+|                                  | *Default*: `https://localhost:8181`                                        |
+| **Enable Debugging**             | Enable WordPress and PHP debugging (recommended for development).          |
+|                                  | *Default*: `y`                                                             |
+| **Database Host**                | Hostname or IP address of the MySQL server.                                |
+|                                  | *Default*: `127.0.0.1`                                                     |
+| **Database Name**                | Schema name for your WordPress database.                                   |
+|                                  | *Required*                                                                 |
+| **Database Username**            | Database user to connect with.                                             |
+|                                  | *Required*                                                                 |
+| **Database Password**            | Password for the above database user.                                      |
+|                                  | *Required*                                                                 |
+| **Database Port**                | Port used for the database connection.                                     |
+|                                  | *Default*: `3306`                                                          |
+| **Redis Host**                   | Hostname or IP of Redis server.                                            |
+|                                  | *Default*: `127.0.0.1`                                                     |
+| **Redis Port**                   | Port for Redis service.                                                    |
+|                                  | *Default*: `6379`                                                          |
+| **Redis Password**               | Redis password, or `null` if none is required.                             |
+|                                  | *Default*: `null`                                                          |
+| **Redis DB Index**               | Numeric Redis DB index (usually 0).                                        |
+|                                  | *Default*: `0`                                                             |
 
 ## Run
 
-`bin/web start`
+You can start, stop, restart, or kill the entire system using one top-level command:
 
-You can monitor the error log with:
+`bin/wp-control start`
+
+## Other Commands
+
+```bash
+bin/wp-control restart     # Gracefully restart services
+bin/wp-control stop        # Gracefully stop services
+bin/wp-control kill        # Stop allservices and kill the supervisor
+bin/wp-control help        # Show available options
+```
+
+## Logs
+
+### To monitor runtime errors
 
 `tail -f var/log/error.log`
 
-## Stop
+### To vew the webserver access log
 
-`bin/web stop`
+`tail -f var/log/access.log`
 
-## Restart
+### Superrvisor output
 
-`bin/web restart`
+`tail -f var/log/supervisord.log`
 
-## Kill
+## Notes
 
-`bin/web kill`
-
-The difference between stop and kill is that kill will shut down the supervisor daemon by killing its process. This is useful and even necessary if you change the configuration.
+- The difference between stop and kill is that kill also shuts down the Supervisor daemon, which is necessary after making changes to configuration or .ini files.
+- You do not need to run bin/web directly—bin/wp-control provides a unified interface for managing your WordPress site lifecycle.

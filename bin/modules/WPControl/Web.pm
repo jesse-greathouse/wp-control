@@ -9,10 +9,10 @@ use Cwd qw(getcwd abs_path);
 use Exporter 'import';
 use lib(dirname(abs_path(__FILE__))  . "/../modules");
 use WPControl::Config qw(get_configuration);
-use WPControl::Utility qw(command_result is_pid_running splash);
+use WPControl::Utility qw(command_result is_pid_running splash trim);
 use Term::ANSIScreen qw(cls);
 
-our @EXPORT_OK = qw(web_start web_restart web_stop web_kill web_help);
+our @EXPORT_OK = qw(web_start web_restart web_stop web_kill web_help web_status is_web_up);
 
 warn $@ if $@; # handle exception
 
@@ -33,6 +33,30 @@ my $supervisorConfig  = "$etcDir/supervisor/conf.d/supervisord.conf";
 my $supervisorLogFile = "$logDir/supervisord.log";
 my $pidFile           = "$varDir/pid/supervisord.pid";
 
+our %service_roles = (
+    cleancache => qr/^cleancache:/,
+    dhp        => qr/^dhp:/,
+    nginx      => qr/^nginx:/,
+    php        => qr/^php:/,
+);
+
+our %status_icons = (
+    cleancache => {
+        'EXITED'  => "✅",
+        'RUNNING' => "⚠️",
+    },
+    dhp => {
+        'EXITED'  => "✅",
+        'RUNNING' => "⚠️",
+    },
+    nginx => {
+        'RUNNING' => "✅",
+    },
+    php => {
+        'RUNNING' => "✅",
+    },
+);
+
 # Get Configuration
 my %cfg = get_configuration();
 
@@ -52,6 +76,7 @@ Examples:
   web restart            # Restart the web service
   web stop               # Stop the web service
   web kill               # Stop service and the supervisor daemon (for config changes)
+  web status             # Show the current status of all web services
   web help               # Show this help information
 
  Main operation modes:
@@ -59,6 +84,7 @@ Examples:
   restart                Restart the web service
   stop                   Gracefully stop the web service
   kill                   Stop service and supervisor daemon (for config changes)
+  status                 Display current status of web-managed services
   help                   Display this help message
 
 EOF
@@ -135,6 +161,67 @@ sub web_kill {
     print $output;
 }
 
+sub is_web_up {
+    my @status_lines = `supervisorctl -c $supervisorConfig status`;
+    foreach my $line (@status_lines) {
+        chomp $line;
+        my ($name, $status, $rest) = $line =~ /^(\S+)\s+(\S+)\s+(.*)$/;
+        $status = trim($status // '');
+
+        my $matched_role;
+        for my $role (keys %service_roles) {
+            if ($name =~ $service_roles{$role}) {
+                $matched_role = $role;
+                last;
+            }
+        }
+
+        return 0 unless $matched_role;
+        return 0 unless exists $status_icons{$matched_role}{$status};
+    }
+    return 1;
+}
+
+sub web_status {
+    print <<"BANNER";
+
+=================================================================
+ Web Service Status
+=================================================================
+
+BANNER
+
+    my @status_lines = `supervisorctl -c $supervisorConfig status`;
+    foreach my $line (@status_lines) {
+        chomp $line;
+
+        my ($name, $status, $rest) = $line =~ /^(\S+)\s+(\S+)\s+(.*)$/;
+        $status = trim($status // '');
+
+        my $matched_role;
+        for my $role (keys %service_roles) {
+            if ($name =~ $service_roles{$role}) {
+                $matched_role = $role;
+                last;
+            }
+        }
+
+        $matched_role //= 'unknown';
+
+        my $icon = $status_icons{$matched_role}{$status} // '❌';
+        my $label = $matched_role ne 'unknown' ? "$matched_role:$name" : $name;
+
+        printf "%s  %-12s %-8s %s\n", $icon, $matched_role, $status, $rest;
+    }
+
+    if (is_web_up()) {
+        print "\n📝  Use 'bin/web restart' or 'bin/web stop' if you need to cycle the Web service.\n\n";
+    } else {
+        print "\n🛠️  One or more Web services are not running. Use 'bin/web start' to bring them up.\n\n";
+    }
+}
+
+
 # Starts the supervisor daemon.
 sub start_daemon {
     @ENV{qw(
@@ -173,6 +260,27 @@ sub start_daemon {
 
     sleep(4);
     print_output();
+
+    if (is_web_up()) {
+        my $admin_url = "$cfg{wordpress}{SITE_URL}/wp-admin";
+        print <<"NOTICE";
+
+🎉 All Web services are running normally.
+
+🔗 You can now access the WordPress admin interface at:
+    $admin_url
+
+NOTICE
+    } else {
+        print <<"WARNING";
+
+⚠️  Some web services did not start as expected.
+
+You may wish to inspect logs or run:
+    bin/web status
+
+WARNING
+    }
 }
 
 sub print_output {
