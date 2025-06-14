@@ -1,0 +1,71 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use Getopt::Long;
+use FindBin;
+use lib "$FindBin::Bin/modules";
+use WPControl::Config qw(get_configuration);
+use WPControl::Utility qw(
+    is_wordpress_db_installed
+    install_wordpress_database
+    compose_wp_url
+    prompt_user_password
+);
+
+sub help {
+    print <<"EOF";
+Usage: install-wp-db [--username=USERNAME] [--password=PASSWORD]
+
+This script installs the WordPress database tables by calling:
+  wp core install
+
+Arguments:
+  --username       WordPress admin username (default: 'admin')
+  --password       WordPress admin password (will prompt if omitted)
+  -h, --help       Show this help message and exit
+EOF
+    exit 0;
+}
+
+# Handle arguments
+my $username = 'admin';
+my $password;
+my $show_help;
+
+GetOptions(
+    'username=s' => \$username,
+    'password=s' => \$password,
+    'help'       => \$show_help,
+    'h'          => \$show_help,
+) or die "Invalid options. Run with --help for usage.\n";
+
+help() if $show_help;
+
+# Die if DB is already installed
+if (is_wordpress_db_installed()) {
+    die "❌ WordPress database is already installed. Refusing to overwrite.\n";
+}
+
+print "\n=================================================================\n";
+print " WordPress Database Installer\n";
+print "=================================================================\n\n";
+print "This will run 'wp core install' and populate the WordPress database.\n\n";
+
+# Prompt for password if not provided
+$password ||= prompt_user_password();
+
+# Load configuration
+my %cfg = get_configuration();
+
+# Enforce required configuration
+my $email = $cfg{wordpress}{ADMIN_EMAIL};
+die "❌ ADMIN_EMAIL is not set in your configuration. Please run bin/configure first.\n"
+    unless defined $email && $email ne '';
+
+# Compose required values
+my $url   = compose_wp_url(%cfg);
+my $title = $cfg{wordpress}{SITE_TITLE} || 'My WordPress Site';
+
+# Run installation
+install_wordpress_database($url, $title, $username, $email, $password);

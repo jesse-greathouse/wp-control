@@ -18,15 +18,10 @@
  * @package WordPress
  */
 
-require_once __DIR__ . '/env.php';
+/** @disregard P1011 Undefined constant */
+require_once ABSPATH . 'env.php';
 
-/** Database Charset to use in creating database tables. */
-define( 'DB_CHARSET', 'utf8' );
-
-/** The Database Collate type. Don't change this if in doubt. */
-define( 'DB_COLLATE', '' );
-
-/**#@+
+/**
  * Authentication Unique Keys and Salts.
  *
  * Change these to different unique phrases!
@@ -67,5 +62,5 @@ if (isset($_SERVER['HTTP_X_FORWARDED_PROTO'])) {
     if ($_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https') $_SERVER['HTTPS']='on';
 }
 
-/** Sets up WordPress vars and included files. */
+/** @disregard P1011 Undefined constant */
 require_once ABSPATH . 'wp-settings.php';

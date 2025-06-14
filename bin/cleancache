@@ -1,0 +1,45 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use File::Path qw(rmtree make_path);
+use File::Copy qw(copy);
+use File::Basename qw(dirname);
+use Cwd qw(abs_path);
+
+warn $@ if $@;
+
+# Determine base paths for configuration
+my $bin = abs_path(dirname(__FILE__));             # Path to the script's directory
+my $applicationRoot = abs_path(dirname($bin));     # Application root
+my $var = "$applicationRoot/var";                  # Path to the var directory
+
+# Define cache subdirectories to clean
+my @cache_dirs = (
+    "$var/cache/file",
+    "$var/cache/opcache",
+    "$var/cache/wp-cli",
+);
+
+# Base .gitkeep path (assumes VAR/cache/.gitkeep is versioned)
+my $gitkeep_source = "$var/cache/.gitkeep";
+die "Missing .gitkeep at expected location: $gitkeep_source\n"
+    unless -f $gitkeep_source;
+
+# Clean all cache directories
+foreach my $path (@cache_dirs) {
+    clean($path);
+}
+
+sub clean {
+    my ($path) = @_;
+
+    if (-d $path) {
+        print "...cleaning: $path...\n";
+        rmtree($path);
+    }
+
+    make_path($path);
+    copy($gitkeep_source, "$path/.gitkeep")
+        or die "Failed to copy .gitkeep to $path: $!\n";
+}

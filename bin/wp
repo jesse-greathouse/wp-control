@@ -1,0 +1,83 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use Cwd qw(abs_path getcwd);
+use File::Basename qw(dirname);
+use File::Spec;
+
+# Project-specific module path
+use lib(dirname(abs_path(__FILE__)) . "/modules");
+use WPControl::Config qw(get_configuration);
+use WPControl::Utility qw(compose_wp_url);
+
+# Resolve script directory
+my $bin = abs_path(dirname(__FILE__));
+my $applicationRoot   = abs_path(dirname($bin));
+my $opt    = "$applicationRoot/opt";
+my $etc    = "$applicationRoot/etc";
+my $src    = "$applicationRoot/src";
+my $tmp    = "$applicationRoot/tmp";
+my $var    = "$applicationRoot/var";
+my $web    = "$applicationRoot/web";
+
+# Extract paths
+my $log_path   = "$var/log";
+my $cache_path = "$var/cache";
+my $php_dir    = "$opt/php/bin";
+my $php_path   = "$php_dir/php";
+my $wp_cli     = "$web/vendor/wp-cli/wp-cli/php/boot-fs.php";  # PHP entry point
+
+die "PHP executable not found at $php_path\n" unless -x $php_path;
+die "wp-cli not found at $wp_cli\n"           unless -f $wp_cli;
+
+# Load configuration
+my %cfg = get_configuration();
+
+my $url = $cfg{wordpress}{SITE_URL};
+
+# Environment overrides
+# Static Paths
+$ENV{BIN}                       = $bin;
+$ENV{ETC}                       = $etc;
+$ENV{OPT}                       = $opt;
+$ENV{SRC}                       = $src;
+$ENV{TMP}                       = $tmp;
+$ENV{VAR}                       = $var;
+$ENV{WEB}                       = $web;
+$ENV{DIR}                       = $applicationRoot;
+$ENV{CACHE_DIR}                 = $cache_path;
+$ENV{LOG_DIR}                   = $log_path;
+
+# Utility Env Variables
+$ENV{ENV}                       = $ENV{ENV} // 'local';
+$ENV{DEBUG}                     = $cfg{wordpress}{DEBUG};
+$ENV{PORT}                      = $cfg{nginx}{PORT};
+$ENV{SSL}                       = $cfg{nginx}{IS_SSL};
+$ENV{USER}                      = $cfg{nginx}{USER};
+
+# WordPress DB config
+$ENV{DB_NAME}                   = $cfg{wordpress}{DB_NAME};
+$ENV{DB_USER}                   = $cfg{wordpress}{DB_USER};
+$ENV{DB_PASSWORD}               = $cfg{wordpress}{DB_PASSWORD};
+$ENV{DB_HOST}                   = $cfg{wordpress}{DB_HOST};
+$ENV{DB_PORT}                   = $cfg{wordpress}{DB_PORT};
+
+# WordPress Redis config
+$ENV{REDIS_DB}                  = $cfg{wordpress}{REDIS_DB};
+$ENV{REDIS_HOST}                = $cfg{wordpress}{REDIS_HOST};
+$ENV{REDIS_PASSWORD}            = $cfg{wordpress}{REDIS_PASSWORD};
+$ENV{REDIS_PORT}                = $cfg{wordpress}{REDIS_PORT};
+
+# WP-CLI internal config
+$ENV{WP_CLI_PHP}                = $php_path;
+$ENV{WP_CLI_CACHE_DIR}          = "$var/cache/wp-cli";
+$ENV{WP_CLI_PACKAGES_DIR}       = "$var/wp-cli/packages";
+$ENV{WP_CLI_SUPPRESS_GLOBAL_PARAMS} = "true";
+
+my @args = @ARGV;
+push @args, "--path=$web" unless grep { /^--path(?:=|$)/ } @args;
+push @args, "--url=$url" unless grep { /^--url(?:=|$)/ } @args;
+
+exec $php_path, $wp_cli, @args
+    or die "exec failed: $!\n";

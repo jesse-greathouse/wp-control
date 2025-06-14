@@ -1,0 +1,15 @@
+# Indentation and line length
+-i=4
+-l=120
+
+# Formatting style
+-lp      # Line up parentheses
+-ce      # Cuddle else
+-noll    # Do not force long-line wrapping
+
+# Tightness controls
+--paren-tightness=2
+--brace-tightness=1
+--vertical-tightness=1
+
+--warning-output
