@@ -145,8 +145,8 @@ sub configure {
     if ($interactive) {
         prompt_wp_install();
         prompt_wp_skeleton_install();
-        prompt_db_install();
         prompt_refresh_keys_and_salts();
+        prompt_db_install();
         do_db_backup();
         prompt_admin_password();
         prompt_finalize();
