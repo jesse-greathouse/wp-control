@@ -52,6 +52,13 @@ if (!defined('DEBUG')) {
     define('DEBUG', settype($_ENV['DEBUG'], "boolean"));
 }
 
+// Disable display of errors and warnings
+// It is recommended to never display PHP errors on the page
+// Use var/log/error.log to see errors.
+if (!defined('WP_DEBUG_DISPLAY')) {
+    define( 'WP_DEBUG_DISPLAY', false );
+}
+
 if (!defined('REDIS_HOST')) {
     define('REDIS_HOST', $_ENV['REDIS_HOST']);
 }
