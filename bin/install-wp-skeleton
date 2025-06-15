@@ -1,0 +1,343 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use Cwd qw(abs_path getcwd);
+use File::Basename qw(dirname);
+use File::Find::Rule;
+use File::HomeDir;
+use File::Path qw(rmtree);
+use Getopt::Long;
+use Git;
+use Term::Menus;
+
+# Project-specific module path
+use lib(dirname(abs_path(__FILE__)) . "/modules");
+use WPControl::Config qw(get_configuration save_configuration);
+
+# Dynamically resolve paths
+my $binDir          = abs_path(dirname(__FILE__));
+my $applicationRoot = abs_path(dirname($binDir));
+my $web             = "$applicationRoot/web";
+
+# Configuration loading
+my %cfg = get_configuration();
+
+# CLI option handling
+my ($skeletonRemote, $skeletonPath, $manualRef);
+GetOptions(
+    "remote=s" => \$skeletonRemote,
+    "path=s"   => \$skeletonPath,
+    "commit=s" => \$manualRef,
+) or die("Error in command line arguments\n");
+
+# Overwrite config only if new values are provided
+my $shouldSave = 0;
+
+if (defined $skeletonRemote && $skeletonRemote ne '') {
+    $cfg{'skeleton'}{'remote'} = $skeletonRemote;
+    $shouldSave = 1;
+}
+
+if (defined $skeletonPath && $skeletonPath ne '') {
+    $cfg{'skeleton'}{'path'} = $skeletonPath;
+    $shouldSave = 1;
+}
+
+save_configuration(%cfg) if $shouldSave;
+
+# From this point onward, rely on %cfg{'skeleton'}{'remote'} and {'path'}
+
+# Prompt for skeleton path if unset
+unless (defined($cfg{'skeleton'}{'path'}) && length $cfg{'skeleton'}{'path'}) {
+    my $default_dir = get_default_directory();
+    print "Project Skeleton path: ($default_dir)\n? > ";
+    chomp(my $input = <STDIN>);
+
+    if ($input eq '' || $input =~ /^[Yy]$/) {
+        $cfg{'skeleton'}{'path'} = $default_dir;
+    } elsif (-d $input) {
+        $cfg{'skeleton'}{'path'} = $input;
+    } else {
+        die "Illegal path choice: (input: $input)\n";
+    }
+
+    save_configuration(%cfg);
+}
+
+# Prompt for remote if unset
+unless (defined($cfg{'skeleton'}{'remote'}) && length $cfg{'skeleton'}{'remote'}) {
+    print "Link the remote code repository:\n? > ";
+    chomp(my $remote = <STDIN>);
+    $cfg{'skeleton'}{'remote'} = $remote;
+
+    my $repo_name = get_repo_name($remote);
+    $cfg{'skeleton'}{'path'} .= "/$repo_name";
+
+    if (-d $cfg{'skeleton'}{'path'}) {
+        validate_skeleton_repository($cfg{'skeleton'}{'path'})
+            or die "Project at \"$cfg{'skeleton'}{'path'}\" is not a valid project format.\n";
+    }
+
+    save_configuration(%cfg);
+}
+
+if (-d $cfg{'skeleton'}{'path'}) {
+    print "Checking for updates in existing repository: $cfg{'skeleton'}{'path'}\n";
+
+    my $repo;
+    eval {
+        $repo = Git->repository(Directory => $cfg{'skeleton'}{'path'});
+    };
+    if ($@ || !$repo) {
+        die "Failed to open Git repository at $cfg{'skeleton'}{'path'}: $@";
+    }
+
+    if (repo_is_dirty($cfg{'skeleton'}{'path'})) {
+        print "Repository is dirty — skipping fetch to avoid side effects on local changes.\n";
+    } else {
+        my @status;
+        eval {
+            @status = $repo->command('fetch', '--dry-run');
+        };
+        if ($@) {
+            die "Failed to run 'git fetch --dry-run': $@";
+        }
+
+        if (@status) {
+            print "Remote updates are available:\n", Dumper(\@status);
+        } else {
+            print "Repository is up to date.\n";
+        }
+    }
+} else {
+    print "Downloading skeleton from remote: $cfg{'skeleton'}{'remote'}\n";
+    clone_skeleton_repository($cfg{'skeleton'}{'remote'}, $cfg{'skeleton'}{'path'});
+}
+
+
+unlink_project($web);
+
+# Ensure uploads folder exists in skeleton path (if missing)
+my $uploads_dir = "$cfg{'skeleton'}{'path'}/uploads";
+unless (-d $uploads_dir) {
+    mkdir $uploads_dir or die "Failed to create uploads directory at $uploads_dir: $!";
+}
+
+link_project($web, $cfg{'skeleton'}{'path'});
+
+if (defined($manualRef)) {
+    print "Using provided reference: $manualRef\n";
+    print_final_verification($cfg{'skeleton'}{'path'}, $manualRef);
+} else {
+    if (repo_is_dirty($cfg{'skeleton'}{'path'})) {
+        print "\nWARNING: Git repository has uncommitted or unstaged changes.\n";
+        print "Ref selection aborted to avoid overwriting local work.\n";
+        print_final_verification($cfg{'skeleton'}{'path'}, undef);
+    } else {
+        my $ref = prompt_for_checkout($cfg{'skeleton'}{'path'});
+        print "Selected reference: $ref\n";
+        print_final_verification($cfg{'skeleton'}{'path'}, $ref);
+    }
+}
+
+# ====================================
+#    Subroutines below this point
+# ====================================
+
+sub clone_skeleton_repository {
+  my ($remote, $skeletonPath) = @_;
+  my @clone = Git::command('clone', $remote, $skeletonPath);
+}
+
+# Check the clone of a repository to make sure it's an actual skeleton.
+# Returns boolean
+sub validate_skeleton_repository {
+  my ($skeletonPath) = @_;
+  my %hasDirectories;
+  my @essentialDirectories = (
+    'client-mu-plugins',
+    'custom-config',
+    'images',
+    'languages',
+    'plugins',
+    'themes',
+  );
+
+  # Get the root directories in the skeleton directory
+  my $rule =  File::Find::Rule->new
+    ->maxdepth(1)
+    ->not(File::Find::Rule->new->name( qr/\.git$/ ));
+  my @subdirs = $rule->directory->in($skeletonPath);
+
+  # Put folder names into the hash: hasDirectories
+  foreach (@subdirs) {
+    my @spl = split('/', $_);
+    $hasDirectories{$spl[-1]} = 1;
+  }
+
+  # Verify each essential directory exists in hasDirectories
+  foreach (@essentialDirectories) {
+    if (!exists($hasDirectories{$_})) {
+      print "Directory: \"$_\" not found.\n";
+      return 0;
+    }
+  }
+
+  return 1;
+}
+
+# Generate the default directory for repositories.
+# Returns String
+sub get_default_directory {
+    my ($repo_name) = @_;
+    my $default_directory = File::HomeDir->my_home;
+
+    # Fall back to $applicationRoot/var if the home directory is unavailable
+    if (! -e $default_directory && -d "$applicationRoot/var") {
+        $default_directory = "$applicationRoot/var";
+    }
+
+    if (defined $repo_name && $repo_name ne '') {
+        $default_directory .= '/' . $repo_name;
+    }
+
+    return $default_directory;
+}
+
+# Return a repo name from the input of a remote url
+# Returns string
+sub get_repo_name {
+  my ($remote) = @_;
+  my @spl = split('/', $remote);
+  my $name  = $spl[-1];
+  my @spltoo = split('.git', $name);
+  $name = $spltoo[0];
+  return $name;
+}
+
+sub unlink_project {
+  my ($webDir) = @_;
+  my @folders  = ('languages', 'images', 'custom-config');
+  # unlink existing symlinks
+  foreach my $folder (@folders) {
+    if ( -l "$webDir/$folder" ) {
+      unlink "$webDir/$folder"
+          or warn "Failed to remove symlink $webDir/$folder: $!\n";
+    }
+  }
+
+  # unlink themes
+  if ( -l "$webDir/wp-content/themes" ) {
+    unlink "$webDir/wp-content/themes"
+        or warn "Failed to remove symlink $webDir/wp-content/themes: $!\n";
+  }
+
+  # unlink plugins
+  if ( -l "$webDir/wp-content/plugins" ) {
+    unlink "$webDir/wp-content/plugins"
+        or warn "Failed to remove symlink $webDir/wp-content/plugins: $!\n";
+  }
+
+  # unlink uploads
+  if ( -l "$webDir/wp-content/uploads" ) {
+    unlink "$webDir/wp-content/uploads"
+        or warn "Failed to remove symlink $webDir/wp-content/uploads: $!\n";
+  }
+
+  # unlink mu-plugins
+  if ( -l "$webDir/wp-content/mu-plugins" ) {
+    unlink "$webDir/wp-content/mu-plugins"
+        or warn "Failed to remove symlink $webDir/wp-content/mu-plugins: $!\n";
+  }
+}
+
+sub link_project {
+  my ($webDir, $source) = @_;
+  my @folders  = ('languages', 'images', 'custom-config');
+
+  # link projects together by folders
+  foreach my $folder (@folders) {
+    symlink("$source/$folder", "$webDir/$folder") or warn "Failed to create symlink $webDir/$folder: $!\n";
+  }
+
+  if (! -d "$webDir/wp-content") {
+    mkdir("$webDir/wp-content") or die "Couldn't create $webDir/wp-content directory, $!";
+  }
+
+  # link themes
+  symlink("$source/themes", "$webDir/wp-content/themes") or warn "Failed to create symlink $webDir/wp-content/themes: $!\n";
+  # link plugins
+  symlink("$source/plugins", "$webDir/wp-content/plugins") or warn "Failed to create symlink $webDir/wp-content/plugins: $!\n";
+  # link uploads
+  symlink("$source/uploads", "$webDir/wp-content/uploads") or warn "Failed to create symlink $webDir/wp-content/uploads: $!\n";
+  # link mu-plugins
+  symlink("$source/client-mu-plugins", "$webDir/wp-content/mu-plugins") or warn "Failed to create symlink $webDir/wp-content/mu-plugins: $!\n";
+}
+
+sub prompt_for_checkout {
+    my ($repo_path) = @_;
+    my $repo = Git->repository(Directory => $repo_path);
+
+    my %options;
+    my @menu;
+
+    # Check for main or master
+    my @branches = $repo->command('for-each-ref', '--sort=-committerdate', '--format=%(refname:short)', 'refs/heads');
+    chomp(@branches);
+
+    if (grep { $_ eq 'main' } @branches) {
+        push @menu, 'branch: main';
+        $options{'branch: main'} = 'main';
+    } elsif (grep { $_ eq 'master' } @branches) {
+        push @menu, 'branch: master';
+        $options{'branch: master'} = 'master';
+    }
+
+    # Add up to 4 other recent branches
+    my $count = 0;
+    foreach my $branch (@branches) {
+        next if $branch eq 'main' || $branch eq 'master';
+        push @menu, "branch: $branch";
+        $options{"branch: $branch"} = $branch;
+        last if ++$count >= 4;
+    }
+
+    # Add up to 5 recent tags
+    my @tags = $repo->command('for-each-ref', '--sort=-creatordate', '--format=%(refname:short)', 'refs/tags');
+    chomp(@tags);
+    for my $i (0..$#tags) {
+        last if $i >= 5;
+        push @menu, "tag: $tags[$i]";
+        $options{"tag: $tags[$i]"} = $tags[$i];
+    }
+
+    push @menu, "Enter manually";
+
+    my $choice = &pick(\@menu, "Select branch, tag, or enter manually:");
+
+    if ($choice eq "Enter manually") {
+        print "Enter a branch, tag, or commit hash:\n? > ";
+        chomp(my $manual = <STDIN>);
+        return $manual;
+    }
+
+    return $options{$choice};
+}
+
+sub repo_is_dirty {
+    my ($repo_path) = @_;
+    my $repo = Git->repository(Directory => $repo_path);
+
+    # 'status --porcelain' is empty if the working directory is clean
+    my @status = $repo->command('status', '--porcelain');
+    return scalar @status > 0;
+}
+
+sub print_final_verification {
+    my ($repo_path, $ref) = @_;
+    print "\n✅ WordPress skeleton installation complete.\n";
+    print "→ Location: $repo_path\n";
+    print "→ Ref: $ref\n" if defined $ref;
+    print "→ Linked to: $web\n\n";
+}
