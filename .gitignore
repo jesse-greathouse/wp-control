@@ -33,6 +33,7 @@ get-pip.py
 etc/php/php.ini
 etc/php-fpm.d/php-fpm.conf
 etc/php-fpm.d/www.conf.default
+etc/php-fpm.conf.default
 etc/nginx/nginx.conf
 etc/nginx/ssl-params.conf
 etc/nginx/force-ssl.conf
