@@ -48,6 +48,7 @@ our @EXPORT_OK = qw(
   prompt_user_password
   validate_required_fields
   shell_quote
+  wordpress_composer_install
 );
 
 # ====================================
@@ -645,6 +646,94 @@ sub prompt_user_password {
         print BOLD YELLOW "Aborted by user.\n" . RESET;
         exit 1;
     }
+}
+
+sub wordpress_composer_install {
+    use File::Basename qw(basename);
+    use File::Spec::Functions qw(catfile);
+    use Cwd qw(abs_path getcwd);
+    use Term::Prompt qw(prompt);
+
+    my ($auto_run) = @_;
+    $auto_run //= 0;
+
+    my $original_cwd     = getcwd();
+    my $applicationRoot  = abs_path(dirname(abs_path(__FILE__)) . '/../../../');
+    my $webDir           = "$applicationRoot/web/wp-content";
+    my $binDir           = "$applicationRoot/bin";
+    my $optDir           = "$applicationRoot/opt";
+    my $php              = "$optDir/php/bin/php";
+    my $composer         = "$binDir/composer";
+
+    my @paths_to_check = (
+        "$webDir/themes",
+        "$webDir/plugins",
+        "$webDir/mu-plugins",
+    );
+
+    my @composer_targets;
+
+    unless (-x $php) {
+        die "❌ PHP binary not found or not executable: $php\n";
+    }
+
+    unless (-f $composer) {
+        die "❌ Composer binary not found at: $composer\n";
+    }
+
+    for my $base (@paths_to_check) {
+        next unless -d $base;
+
+        opendir(my $dh, $base) or die "Failed to open $base: $!";
+        while (my $entry = readdir($dh)) {
+            next if $entry =~ /^\./;
+            my $subdir = "$base/$entry";
+            next unless -d $subdir;
+            if (-f "$subdir/composer.json") {
+                push @composer_targets, abs_path($subdir);
+            }
+        }
+        closedir($dh);
+    }
+
+    if (!@composer_targets) {
+        print "ℹ️  No composer.json files found in themes or plugins.\n";
+        return;
+    }
+
+    print "\n📦 Found composer.json in the following directories:\n";
+    foreach my $dir (@composer_targets) {
+        print " → $dir\n";
+    }
+
+    foreach my $dir (@composer_targets) {
+        if (!$auto_run) {
+            print "\n";
+            my $basename = basename($dir);
+            my $should_run = prompt('y', "🔹 Run composer install for [$basename]?", '', 'y');
+            next unless $should_run;
+        }
+
+        print "\n🚧 Running composer install in: $dir\n";
+
+        chdir $dir or die "Failed to chdir to $dir: $!";
+
+        my $cmd = "$php $composer install --no-interaction";
+        my $output = `$cmd 2>&1`;
+        my $exit_code = $? >> 8;
+
+        print "📄 Output:\n$output\n";
+
+        if ($exit_code != 0) {
+            print "⚠️  composer install failed in $dir (exit code $exit_code)\n";
+        } else {
+            print "✅ composer install completed in $dir\n";
+        }
+    }
+
+    chdir $original_cwd or warn "⚠️ Failed to restore original working directory: $original_cwd\n";
+
+    print "\n✅ Composer install routine completed.\n";
 }
 
 # Prints a spash screen message.

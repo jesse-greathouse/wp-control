@@ -1,0 +1,48 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use Cwd qw(getcwd abs_path);
+use File::Basename;
+use lib(dirname(abs_path(__FILE__)) . "/modules");
+use WPControl::Utility qw(wordpress_composer_install);
+
+# Parse argument
+my $arg = shift @ARGV // '';
+my $auto_run = 0;
+
+# Help flags
+if ($arg eq '--help' || $arg eq '-h' || $arg eq 'help') {
+    show_help();
+    exit(0);
+}
+
+# CI/CD mode
+if ($arg eq '--non-interactive') {
+    $auto_run = 1;
+}
+elsif ($arg ne '') {
+    print "❌ Unknown option: '$arg'\n";
+    show_help();
+    exit(1);
+}
+
+# Main behavior
+wordpress_composer_install($auto_run);
+exit(0);
+
+# Help message
+sub show_help {
+    print <<'EOF';
+
+📦 Usage: bin/wordpress-composer-install [option]
+
+Available options:
+  --non-interactive   Run all composer installs without prompting (CI/CD mode).
+  help, -h, --help    Show this help message.
+
+If no option is provided, prompts will be shown for each composer.json found.
+
+EOF
+}
