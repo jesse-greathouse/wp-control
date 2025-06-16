@@ -59,6 +59,10 @@ if (!defined('WP_DEBUG_DISPLAY')) {
     define( 'WP_DEBUG_DISPLAY', false );
 }
 
+if (!defined('WP_REDIS_CLIENT')) {
+    define('WP_REDIS_CLIENT', 'phpredis');
+}
+
 if (!defined('REDIS_HOST')) {
     define('REDIS_HOST', $_ENV['REDIS_HOST']);
 }
@@ -73,6 +77,15 @@ if (!defined('REDIS_DB')) {
 
 if (!defined('REDIS_PASSWORD')) {
     define('REDIS_PASSWORD', $_ENV['REDIS_PASSWORD']);
+}
+
+// Decide between socket vs TCP
+if (!defined('WP_REDIS_PATH') && strlen(REDIS_HOST) > 0 && REDIS_HOST[0] === '/') {
+    // REDIS_HOST is a Unix socket path
+    define('WP_REDIS_PATH', REDIS_HOST);
+} else if (!defined('WP_REDIS_HOST')) {
+    // Otherwise assume it's a hostname or IP
+    define('WP_REDIS_HOST', REDIS_HOST);
 }
 
 if (!defined('DB_NAME')) {
