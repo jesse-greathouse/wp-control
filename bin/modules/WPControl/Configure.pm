@@ -12,7 +12,7 @@ use Term::ANSIScreen qw(cls);
 use lib(dirname(abs_path(__FILE__)) . "/../modules");
 use WPControl::Config qw(get_configuration save_configuration write_config_file);
 use WPControl::Utility qw(
-    splash generate_rand_str validate_required_fields
+    splash generate_rand_str validate_required_fields wordpress_composer_install
 );
 use WPControl::RefreshKeysAndSalts qw(refresh_keys_and_salts);
 
@@ -149,10 +149,12 @@ sub configure {
         prompt_db_install();
         do_db_backup();
         prompt_admin_password();
+        prompt_composer_installs();
         prompt_finalize();
     } else {
         # run keys and salts if it doesn't exist:
         -e $keysAndSalts or refresh_keys_and_salts();
+        wordpress_composer_install(1);
 
         print "\nConfiguration completed in non-interactive mode.\n";
         print "Note: If this is a fresh install, be sure to manually run the following commands as needed:\n\n";
@@ -160,7 +162,8 @@ sub configure {
         print "  bin/install-wp-skeleton         # Install or update site code, plugins, and themes\n";
         print "  bin/install-wp-db               # Install the WordPress database tables\n";
         print "  bin/db-backup                   # Install the WordPress database tables\n";
-        print "  bin/refresh-wp-keys-and-salts   # Refresh security keys and invalidate existing sessions\n\n";
+        print "  bin/refresh-wp-keys-and-salts   # Refresh security keys and invalidate existing sessions\n";
+        print "  bin/wordpress-composer-install  # 'composer install' for each plugin and theme\n\n";
     }
 }
 
@@ -459,6 +462,21 @@ sub prompt_admin_password {
 
       update_wordpress_user_password($email, $password);
   }
+}
+
+sub prompt_composer_installs {
+    print "\n=================================================================\n";
+    print " Composer Install for Plugins and Themes\n";
+    print "=================================================================\n\n";
+
+    print "This will check for composer.json files inside wp-content plugins and themes\n";
+    print "and allow you to run 'composer install' for each one interactively.\n";
+    print "You can run this step again manually later using: bin/wordpress-composer-install\n\n";
+
+    my $answer = prompt('y', "⚙️  Run composer install for themes/plugins now?", '', 'y');
+    return unless $answer;
+
+    wordpress_composer_install(0);
 }
 
 sub do_db_backup {
