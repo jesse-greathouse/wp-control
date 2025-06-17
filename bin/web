@@ -1,0 +1,39 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+
+use Cwd qw(getcwd abs_path);
+use File::Basename;
+use lib(dirname(abs_path(__FILE__)) . "/modules");
+use WPControl::Web qw(web_start web_restart web_stop web_kill web_status web_help);
+
+# Dispatch table for available actions
+my %actions = (
+    start   => \&web_start,
+    restart => \&web_restart,
+    stop    => \&web_stop,
+    kill    => sub {
+        web_stop();
+        web_kill();
+    },
+    status  => \&web_status,  # ← added status entry
+    help    => \&web_help,
+);
+
+
+# Entry point: get action from first argument
+my $action = shift @ARGV // '';
+
+# Normalize common help aliases
+if ($action eq '--help' || $action eq '-h') {
+    $action = 'help';
+}
+
+# Dispatch or show help
+if (exists $actions{$action}) {
+    $actions{$action}->();
+} else {
+    print "Unknown action: '$action'\nUse 'help' to see available options.\n";
+    web_help();
+    exit(1);
+}
