@@ -1,6 +1,6 @@
 # wp-control
 
-There are many ways to run your **WordPress** site, without any technical ability required. There are cheap and flaky services like **[wordpress.com](https://wordpress.com/)**, which negate the need for infrastructure. Some of us still want to or need to manage our own WordPress site, on our own servers, or our local development environment; and it's those people who wp-control was created for.
+There are many ways to run your **WordPress** site, without any technical ability required. There are services like **[wordpress.com](https://wordpress.com/)**, which negate the need for infrastructure. Some of us still want to or need to manage our own WordPress site, on our own servers, or our local development environment; and it's those people who wp-control was created for.
 
 The project is designed to be implemented with a WordPress "skeleton" repository for specific WordPress installations. The hope is that you can start your own WordPress projects, using a skeleton (Such one made from  [jesse-greathouse/wordpress-skeleton](https://github.com/jesse-greathouse/wordpress-skeleton) ) as the foundation to track your own custom code. This project contains the executables to incorporate your WordPress Skeleton files into a live WordPress site.
 
